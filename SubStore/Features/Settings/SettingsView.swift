@@ -46,104 +46,501 @@ struct ShareListView: View {
 struct SettingsView: View {
     @EnvironmentObject var themeManager: ThemeManager
     @EnvironmentObject var settingsManager: SettingsManager
+    
+    // 存储模式相关状态
+    @State private var storageType: StorageType = .gist
+    @State private var isEditing = false
+    @State private var isEditLoading = false
     @State private var showingAbout = false
+    @State private var showingFilePicker = false
+    @State private var showingExportSheet = false
+    @State private var showingDocumentPicker = false
+    
+    // 编辑字段状态
+    @State private var userInput = ""
+    @State private var tokenInput = ""
+    @State private var uaInput = ""
+    @State private var proxyInput = ""
+    @State private var timeoutInput = ""
+    @State private var cacheThresholdInput = ""
+    
+    // 同步状态
+    @State private var uploadIsLoading = false
+    @State private var downloadIsLoading = false
+    @State private var restoreIsLoading = false
+    
+    enum StorageType: String, CaseIterable {
+        case gist = "gist"
+        case manual = "manual"
+        
+        var displayName: String {
+            switch self {
+            case .gist:
+                return "GitHub Gist"
+            case .manual:
+                return "手动备份"
+            }
+        }
+        
+        var info: String {
+            switch self {
+            case .gist:
+                return "云端同步"
+            case .manual:
+                return "本地文件"
+            }
+        }
+    }
+    
+    private var syncIsDisabled: Bool {
+        uploadIsLoading || downloadIsLoading || 
+        settingsManager.settings.sync.gistToken.isEmpty || 
+        settingsManager.settings.sync.githubUser.isEmpty
+    }
+    
+    private var desText: [String] {
+        if settingsManager.settings.sync.gistToken.isEmpty || settingsManager.settings.sync.githubUser.isEmpty {
+            return ["未配置同步"]
+        } else {
+            return ["已配置同步", "点击编辑修改设置"]
+        }
+    }
     
     var body: some View {
         NavigationStack {
-            List {
-                // 外观设置
-                Section("外观") {
-                    SettingsRowView(
-                        title: "主题模式",
-                        systemImage: "paintbrush",
-                        value: themeManager.currentTheme.mode.displayName,
-                        destination: ThemeSettingsView()
-                    )
-                    
-                    SettingsRowView(
-                        title: "显示流量信息",
-                        systemImage: "chart.bar",
-                        action: {
-                            settingsManager.settings.appearance.showFlowInfo.toggle()
-                            settingsManager.saveSettings()
-                        }
-                    )
-                    
-                    SettingsRowView(
-                        title: "显示订阅图标",
-                        systemImage: "photo",
-                        action: {
-                            settingsManager.settings.appearance.showSubscriptionIcons.toggle()
-                            settingsManager.saveSettings()
-                        }
-                    )
-                }
-                
-                // 同步设置
-                Section("同步") {
-                    SettingsRowView(
-                        title: "云端同步",
-                        subtitle: "使用 GitHub Gist 或 GitLab Snippet 同步配置",
-                        systemImage: "icloud",
-                        value: settingsManager.settings.sync.platform.displayName,
-                        destination: SyncSettingsView()
-                    )
-                    
-                    if settingsManager.settings.sync.platform != .none {
-                        SettingsRowView(
-                            title: "自动同步",
-                            systemImage: "arrow.clockwise",
-                            action: {
-                                settingsManager.settings.sync.autoSync.toggle()
-                                settingsManager.saveSettings()
+            ScrollView {
+                VStack(spacing: 24) {
+                    // 存储类型选择
+                    HStack {
+                        ForEach(StorageType.allCases, id: \.self) { type in
+                            Button(action: {
+                                withAnimation {
+                                    storageType = type
+                                }
+                            }) {
+                                VStack(spacing: 4) {
+                                    Text(type.displayName)
+                                        .font(.caption)
+                                        .fontWeight(.medium)
+                                    
+                                    Rectangle()
+                                        .fill(storageType == type ? Color.accentColor : Color.clear)
+                                        .frame(height: 2)
+                                }
                             }
-                        )
-                    }
-                }
-                
-                // 网络设置
-                Section("网络") {
-                    SettingsRowView(
-                        title: "后端地址",
-                        systemImage: "server.rack",
-                        value: settingsManager.settings.network.baseURL,
-                        destination: NetworkSettingsView()
-                    )
-                    
-                    SettingsRowView(
-                        title: "请求超时",
-                        systemImage: "clock",
-                        value: "\(settingsManager.settings.network.timeout)秒"
-                    )
-                }
-                
-                // 关于
-                Section("关于") {
-                    SettingsRowView(
-                        title: "关于 Sub-Store",
-                        systemImage: "info.circle",
-                        destination: AboutView()
-                    )
-                    
-                    SettingsRowView(
-                        title: "版本",
-                        systemImage: "tag",
-                        value: AppConstants.App.version
-                    )
-                }
-                
-                // 高级设置
-                Section("高级") {
-                    SettingsRowView(
-                        title: "重置设置",
-                        systemImage: "arrow.counterclockwise",
-                        action: {
-                            settingsManager.resetToDefaults()
+                            .foregroundColor(storageType == type ? .accentColor : .secondary)
                         }
-                    )
+                        
+                        Spacer()
+                        
+                        Text(storageType.info)
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                    .padding(.horizontal)
+                    
+                    // 用户信息区域
+                    profileSection
+                    
+                    // 配置卡片
+                    configSection
+                    
+                    // 其他设置
+                    otherSettingsSection
                 }
+                .padding(.vertical)
             }
             .navigationTitle("设置")
+        }
+        .fileImporter(
+            isPresented: $showingDocumentPicker,
+            allowedContentTypes: [.json],
+            allowsMultipleSelection: false
+        ) { result in
+            handleFileImport(result)
+        }
+        .onAppear {
+            loadEditingValues()
+        }
+    }
+    
+    // MARK: - Profile Section
+    private var profileSection: some View {
+        HStack(spacing: 16) {
+            // 头像
+            AsyncImage(url: URL(string: "https://github.com/\(settingsManager.settings.sync.githubUser).png")) { image in
+                image
+                    .resizable()
+                    .aspectRatio(contentMode: .fill)
+            } placeholder: {
+                Image(systemName: "person.circle.fill")
+                    .font(.system(size: 60))
+                    .foregroundColor(.gray)
+            }
+            .frame(width: 72, height: 72)
+            .clipShape(Circle())
+            
+            // 用户信息
+            VStack(alignment: .leading, spacing: 4) {
+                if storageType == .manual {
+                    Text("手动备份")
+                        .font(.title3)
+                        .fontWeight(.bold)
+                    Text("本地文件备份和恢复")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                } else {
+                    Text(settingsManager.settings.sync.githubUser.isEmpty ? "未配置用户" : settingsManager.settings.sync.githubUser)
+                        .font(.title3)
+                        .fontWeight(.bold)
+                    VStack(alignment: .leading, spacing: 2) {
+                        ForEach(desText, id: \.self) { text in
+                            Text(text)
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                }
+            }
+            
+            Spacer()
+            
+            // 操作按钮
+            actionButtons
+        }
+        .padding()
+        .background(Color(UIColor.secondarySystemGroupedBackground))
+        .cornerRadius(12)
+        .padding(.horizontal)
+    }
+    
+    // MARK: - Action Buttons
+    private var actionButtons: some View {
+        VStack(spacing: 12) {
+            if storageType == .manual {
+                // 恢复按钮
+                Button(action: {
+                    showingDocumentPicker = true
+                }) {
+                    HStack(spacing: 8) {
+                        if restoreIsLoading {
+                            ProgressView()
+                                .scaleEffect(0.8)
+                        } else {
+                            Image(systemName: "cloud.fill")
+                        }
+                        Text("恢复")
+                            .font(.caption)
+                    }
+                    .foregroundColor(.accentColor)
+                    .frame(width: 100, height: 32)
+                    .background(Color.accentColor.opacity(0.1))
+                    .cornerRadius(8)
+                }
+                .disabled(restoreIsLoading)
+                
+                // 备份按钮
+                Button(action: {
+                    showingExportSheet = true
+                }) {
+                    HStack(spacing: 8) {
+                        Image(systemName: "square.and.arrow.down")
+                        Text("备份")
+                            .font(.caption)
+                    }
+                    .foregroundColor(.white)
+                    .frame(width: 100, height: 32)
+                    .background(Color.accentColor)
+                    .cornerRadius(8)
+                }
+            } else {
+                // 上传按钮
+                Button(action: uploadSettings) {
+                    HStack(spacing: 8) {
+                        if uploadIsLoading {
+                            ProgressView()
+                                .scaleEffect(0.8)
+                        } else {
+                            Image(systemName: "cloud.fill")
+                        }
+                        Text("上传")
+                            .font(.caption)
+                    }
+                    .foregroundColor(.accentColor)
+                    .frame(width: 100, height: 32)
+                    .background(Color.accentColor.opacity(0.1))
+                    .cornerRadius(8)
+                }
+                .disabled(syncIsDisabled)
+                
+                // 下载按钮
+                Button(action: downloadSettings) {
+                    HStack(spacing: 8) {
+                        if downloadIsLoading {
+                            ProgressView()
+                                .scaleEffect(0.8)
+                        } else {
+                            Image(systemName: "square.and.arrow.down")
+                        }
+                        Text("下载")
+                            .font(.caption)
+                    }
+                    .foregroundColor(.white)
+                    .frame(width: 100, height: 32)
+                    .background(Color.accentColor)
+                    .cornerRadius(8)
+                }
+                .disabled(syncIsDisabled)
+            }
+        }
+    }
+    
+    // MARK: - Config Section
+    private var configSection: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            HStack {
+                Text("配置")
+                    .font(.title3)
+                    .fontWeight(.bold)
+                
+                Spacer()
+                
+                HStack(spacing: 8) {
+                    if isEditing {
+                        Button("取消") {
+                            exitEditMode()
+                        }
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                        .disabled(isEditLoading)
+                    }
+                    
+                    Button(isEditing ? "保存" : "编辑") {
+                        toggleEditMode()
+                    }
+                    .font(.caption)
+                    .fontWeight(.medium)
+                    .foregroundColor(.accentColor)
+                    .disabled(isEditLoading)
+                }
+            }
+            
+            VStack(spacing: 12) {
+                if storageType == .gist {
+                    ConfigInputView(
+                        title: "GitHub 用户名",
+                        text: $userInput,
+                        placeholder: "GitHub 用户名",
+                        isEditing: isEditing,
+                        systemImage: "person"
+                    )
+                    
+                    ConfigInputView(
+                        title: "Gist Token",
+                        text: $tokenInput,
+                        placeholder: "Gist Token",
+                        isEditing: isEditing,
+                        systemImage: "key",
+                        isSecure: true
+                    )
+                }
+                
+                ConfigInputView(
+                    title: "默认代理",
+                    text: $proxyInput,
+                    placeholder: "默认代理设置",
+                    isEditing: isEditing,
+                    systemImage: "network"
+                )
+                
+                ConfigInputView(
+                    title: "User-Agent",
+                    text: $uaInput,
+                    placeholder: "默认 User-Agent",
+                    isEditing: isEditing,
+                    systemImage: "globe"
+                )
+                
+                ConfigInputView(
+                    title: "请求超时",
+                    text: $timeoutInput,
+                    placeholder: "超时时间(毫秒)",
+                    isEditing: isEditing,
+                    systemImage: "clock",
+                    keyboardType: .numberPad
+                )
+                
+                ConfigInputView(
+                    title: "缓存阈值",
+                    text: $cacheThresholdInput,
+                    placeholder: "缓存大小阈值",
+                    isEditing: isEditing,
+                    systemImage: "memorychip",
+                    keyboardType: .numberPad
+                )
+            }
+        }
+        .padding()
+        .background(Color(UIColor.secondarySystemGroupedBackground))
+        .cornerRadius(12)
+        .padding(.horizontal)
+    }
+    
+    // MARK: - Other Settings Section
+    private var otherSettingsSection: some View {
+        VStack(spacing: 0) {
+            SettingsRowView(
+                title: "主题模式",
+                systemImage: "paintbrush",
+                value: themeManager.currentTheme.mode.displayName,
+                destination: ThemeSettingsView()
+            )
+            
+            SettingsRowView(
+                title: "网络设置",
+                systemImage: "server.rack",
+                value: settingsManager.settings.network.baseURL,
+                destination: NetworkSettingsView()
+            )
+            
+            SettingsRowView(
+                title: "关于 Sub-Store",
+                systemImage: "info.circle",
+                destination: AboutView()
+            )
+            
+            SettingsRowView(
+                title: "版本",
+                systemImage: "tag",
+                value: AppConstants.App.version
+            )
+        }
+        .background(Color(UIColor.secondarySystemGroupedBackground))
+        .cornerRadius(12)
+        .padding(.horizontal)
+    }
+    
+    // MARK: - Methods
+    private func loadEditingValues() {
+        userInput = settingsManager.settings.sync.githubUser
+        tokenInput = settingsManager.settings.sync.gistToken.isEmpty ? "" : "******"
+        uaInput = settingsManager.settings.network.userAgent
+        proxyInput = "" // 这里需要从后端获取
+        timeoutInput = "\(settingsManager.settings.network.timeout)"
+        cacheThresholdInput = "1024" // 默认值
+    }
+    
+    private func toggleEditMode() {
+        if isEditing {
+            saveSettings()
+        } else {
+            isEditing = true
+            // 重新加载实际值用于编辑
+            tokenInput = settingsManager.settings.sync.gistToken
+        }
+    }
+    
+    private func exitEditMode() {
+        isEditing = false
+        loadEditingValues()
+    }
+    
+    private func saveSettings() {
+        isEditLoading = true
+        
+        // 更新设置
+        settingsManager.settings.sync.githubUser = userInput
+        if !tokenInput.isEmpty && tokenInput != "******" {
+            settingsManager.settings.sync.gistToken = tokenInput
+        }
+        settingsManager.settings.network.userAgent = uaInput
+        if let timeout = Int(timeoutInput) {
+            settingsManager.settings.network.timeout = timeout
+        }
+        
+        settingsManager.saveSettings()
+        
+        isEditLoading = false
+        isEditing = false
+        loadEditingValues()
+    }
+    
+    private func uploadSettings() {
+        uploadIsLoading = true
+        // 这里实现上传逻辑
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+            uploadIsLoading = false
+        }
+    }
+    
+    private func downloadSettings() {
+        downloadIsLoading = true
+        // 这里实现下载逻辑
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+            downloadIsLoading = false
+        }
+    }
+    
+    private func handleFileImport(_ result: Result<[URL], Error>) {
+        switch result {
+        case .success(let urls):
+            guard let url = urls.first else { return }
+            restoreIsLoading = true
+            
+            // 这里实现文件导入逻辑
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                restoreIsLoading = false
+            }
+            
+        case .failure(let error):
+            print("File import failed: \(error)")
+        }
+    }
+}
+
+// MARK: - Config Input View
+struct ConfigInputView: View {
+    let title: String
+    @Binding var text: String
+    let placeholder: String
+    let isEditing: Bool
+    let systemImage: String
+    var isSecure: Bool = false
+    var keyboardType: UIKeyboardType = .default
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Image(systemName: systemImage)
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                    .frame(width: 16)
+                
+                Text(title)
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+            
+            Group {
+                if isSecure && !isEditing {
+                    Text(text.isEmpty ? placeholder : text)
+                        .foregroundColor(text.isEmpty ? .secondary : .primary)
+                } else if isEditing {
+                    if isSecure {
+                        SecureField(placeholder, text: $text)
+                    } else {
+                        TextField(placeholder, text: $text)
+                            .keyboardType(keyboardType)
+                    }
+                } else {
+                    Text(text.isEmpty ? placeholder : text)
+                        .foregroundColor(text.isEmpty ? .secondary : .primary)
+                }
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+            .background(Color(UIColor.tertiarySystemGroupedBackground))
+            .cornerRadius(8)
         }
     }
 }

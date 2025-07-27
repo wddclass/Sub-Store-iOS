@@ -212,6 +212,8 @@ class ThemeManager: ObservableObject {
 // MARK: - Settings Manager
 class SettingsManager: ObservableObject {
     @Published var settings: AppSettings
+    @Published var isBackendConfigured: Bool = false
+    @Published var currentHost: String?
     
     private let storageManager = StorageManager.shared
     
@@ -219,6 +221,7 @@ class SettingsManager: ObservableObject {
         // 从本地存储加载设置
         self.settings = AppSettings()
         loadSettings()
+        loadBackendConfig()
     }
     
     func loadSettings() {
@@ -227,8 +230,34 @@ class SettingsManager: ObservableObject {
         }
     }
     
+    private func loadBackendConfig() {
+        isBackendConfigured = UserDefaults.standard.bool(forKey: "backendConfigured")
+        currentHost = UserDefaults.standard.string(forKey: "currentBackendHost")
+    }
+    
     func saveSettings() {
         storageManager.setCodable(settings, forKey: "AppSettings")
+    }
+    
+    func setBackendHost(_ host: String) {
+        currentHost = host
+        settings.network.baseURL = host
+        UserDefaults.standard.set(host, forKey: "currentBackendHost")
+        saveSettings()
+    }
+    
+    func setBackendConfigured(_ configured: Bool) {
+        isBackendConfigured = configured
+        UserDefaults.standard.set(configured, forKey: "backendConfigured")
+    }
+    
+    func resetBackendConfig() {
+        isBackendConfigured = false
+        currentHost = nil
+        UserDefaults.standard.removeObject(forKey: "backendConfigured")
+        UserDefaults.standard.removeObject(forKey: "currentBackendHost")
+        settings.network.baseURL = AppConstants.API.defaultBaseURL
+        saveSettings()
     }
     
     func updateThemeSettings(_ themeSettings: ThemeSettings) {

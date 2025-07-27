@@ -6,6 +6,7 @@ struct ContentView: View {
     @State private var selectedTab = 0
     @State private var previousTab = 0
     @State private var showingOnboarding = false
+    @State private var showingBackendConfig = false
     @State private var isTabChanging = false
     @StateObject private var networkMonitor = NetworkMonitor.shared
     
@@ -106,8 +107,13 @@ struct ContentView: View {
             OnboardingView()
                 .transition(.modal)
         }
+        .sheet(isPresented: $showingBackendConfig) {
+            BackendConfigView(isPresented: $showingBackendConfig)
+                .transition(.modal)
+        }
         .onAppear {
             checkFirstLaunch()
+            checkBackendConfiguration()
         }
     }
     
@@ -129,6 +135,15 @@ struct ContentView: View {
         if !UserDefaults.standard.bool(forKey: "HasLaunchedBefore") {
             showingOnboarding = true
             UserDefaults.standard.set(true, forKey: "HasLaunchedBefore")
+        }
+    }
+    
+    private func checkBackendConfiguration() {
+        // 在引导完成后检查后端配置
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+            if !settingsManager.isBackendConfigured {
+                showingBackendConfig = true
+            }
         }
     }
 }
