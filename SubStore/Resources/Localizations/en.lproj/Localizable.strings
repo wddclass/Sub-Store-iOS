@@ -1,0 +1,179 @@
+/* 
+  Localizable.strings (English)
+  SubStore
+
+  Created by Sub-Store Team.
+  Copyright © 2024 Sub-Store. All rights reserved.
+*/
+
+// MARK: - General
+"OK" = "OK";
+"Cancel" = "Cancel";
+"Save" = "Save";
+"Delete" = "Delete";
+"Edit" = "Edit";
+"Done" = "Done";
+"Loading" = "Loading...";
+"Error" = "Error";
+"Retry" = "Retry";
+"Add" = "Add";
+"Remove" = "Remove";
+"Clear" = "Clear";
+"Search" = "Search";
+"Settings" = "Settings";
+"About" = "About";
+
+// MARK: - Tab Bar
+"Subscriptions" = "Subscriptions";
+"Rules" = "Rules";
+"Files" = "Files";
+"Share" = "Share";
+
+// MARK: - Subscriptions
+"Single Subscription" = "Single Subscription";
+"Collection Subscription" = "Collection Subscription";
+"Subscription Name" = "Subscription Name";
+"Subscription URL" = "Subscription URL";
+"Subscription Type" = "Subscription Type";
+"Enable Subscription" = "Enable Subscription";
+"Tags (comma separated)" = "Tags (comma separated)";
+"Platform" = "Platform";
+"Icon URL" = "Icon URL";
+"Add Subscription" = "Add Subscription";
+"Edit Subscription" = "Edit Subscription";
+"No Subscriptions" = "No Subscriptions";
+"No Subscriptions Description" = "Tap the + button in the top right to add your first subscription";
+"Flow Info" = "Flow Info";
+"Unlimited" = "Unlimited";
+
+// MARK: - Rules
+"Rule Name" = "Rule Name";
+"Rule Type" = "Rule Type";
+"Rule Content" = "Rule Content";
+"Sync URL" = "Sync URL";
+"Auto Sync" = "Auto Sync";
+"Last Sync" = "Last Sync";
+"Enable Rule" = "Enable Rule";
+"Add Rule" = "Add Rule";
+"Edit Rule" = "Edit Rule";
+"No Rules" = "No Rules";
+"Rules Under Development" = "Rules Under Development";
+"Rules Under Development Description" = "Rule configuration and sync features are under development";
+
+// MARK: - Files
+"File Name" = "File Name";
+"File Type" = "File Type";
+"File Size" = "File Size";
+"File Content" = "File Content";
+"Read Only" = "Read Only";
+"Add File" = "Add File";
+"Edit File" = "Edit File";
+"No Files" = "No Files";
+"Files Under Development" = "Files Under Development";
+"Files Under Development Description" = "File management features are under development";
+
+// MARK: - Share
+"Share Name" = "Share Name";
+"Share Token" = "Share Token";
+"Share URL" = "Share URL";
+"Access Count" = "Access Count";
+"Expiration Date" = "Expiration Date";
+"Create Share" = "Create Share";
+"Share Management" = "Share Management";
+"No Shares" = "No Shares";
+"Share Under Development" = "Share Under Development";
+"Share Under Development Description" = "Share management features are under development";
+
+// MARK: - Settings
+"Appearance" = "Appearance";
+"Theme Mode" = "Theme Mode";
+"Light Mode" = "Light Mode";
+"Dark Mode" = "Dark Mode";
+"Follow System" = "Follow System";
+"Accent Color" = "Accent Color";
+"Use System Accent Color" = "Use System Accent Color";
+"Show Flow Info" = "Show Flow Info";
+"Show Subscription Icons" = "Show Subscription Icons";
+"Compact Mode" = "Compact Mode";
+"Animations Enabled" = "Animations Enabled";
+"Haptic Feedback" = "Haptic Feedback";
+
+"Sync" = "Sync";
+"Cloud Sync" = "Cloud Sync";
+"Sync Platform" = "Sync Platform";
+"No Sync" = "No Sync";
+"GitHub Gist" = "GitHub Gist";
+"GitLab Snippet" = "GitLab Snippet";
+"GitHub Username" = "GitHub Username";
+"Gist Token" = "Gist Token";
+"Sync Interval" = "Sync Interval";
+
+"Network" = "Network";
+"Backend URL" = "Backend URL";
+"Request Timeout" = "Request Timeout";
+"Retry Count" = "Retry Count";
+"User Agent" = "User Agent";
+
+"Advanced" = "Advanced";
+"Reset Settings" = "Reset Settings";
+"Version" = "Version";
+
+// MARK: - About
+"App Name" = "Sub-Store";
+"App Description" = "Advanced Subscription Manager";
+"Features" = "Features";
+"Feature 1" = "• Support for multiple subscription formats";
+"Feature 2" = "• Powerful subscription formatting";
+"Feature 3" = "• Multiple subscription aggregation";
+"Feature 4" = "• Rule management and cloud sync";
+"Feature 5" = "• File management and editing";
+"Open Source" = "Open Source";
+"GitHub Repository" = "GitHub Repository";
+"Frontend Project" = "Frontend Project";
+
+// MARK: - Errors
+"Network Error" = "Network Error";
+"Invalid URL" = "Invalid URL";
+"No Data" = "No Data";
+"Decoding Error" = "Decoding Error";
+"Server Error" = "Server Error";
+"Unauthorized" = "Unauthorized";
+"Timeout" = "Timeout";
+"Unknown Error" = "Unknown Error";
+"Validation Error" = "Validation Error";
+"Storage Error" = "Storage Error";
+
+// MARK: - Success Messages
+"Subscription Added" = "Subscription Added";
+"Subscription Updated" = "Subscription Updated";
+"Subscription Deleted" = "Subscription Deleted";
+"Rule Added" = "Rule Added";
+"Rule Updated" = "Rule Updated";
+"Rule Deleted" = "Rule Deleted";
+"Settings Saved" = "Settings Saved";
+"Sync Completed" = "Sync Completed";
+
+// MARK: - Validation Messages
+"Name Required" = "Name Required";
+"URL Required" = "URL Required";
+"Invalid URL Format" = "Invalid URL Format";
+"Name Too Long" = "Name Too Long";
+"Invalid Token" = "Invalid Token";
+
+// MARK: - Time
+"seconds" = "seconds";
+"minutes" = "minutes";
+"hours" = "hours";
+"days" = "days";
+"weeks" = "weeks";
+"months" = "months";
+"years" = "years";
+"ago" = "ago";
+"just now" = "just now";
+
+// MARK: - Data Units
+"B" = "B";
+"KB" = "KB";
+"MB" = "MB";
+"GB" = "GB";
+"TB" = "TB";

@@ -1,0 +1,179 @@
+/* 
+  Localizable.strings (Chinese Simplified)
+  SubStore
+
+  Created by Sub-Store Team.
+  Copyright © 2024 Sub-Store. All rights reserved.
+*/
+
+// MARK: - General
+"OK" = "确定";
+"Cancel" = "取消";
+"Save" = "保存";
+"Delete" = "删除";
+"Edit" = "编辑";
+"Done" = "完成";
+"Loading" = "加载中...";
+"Error" = "错误";
+"Retry" = "重试";
+"Add" = "添加";
+"Remove" = "移除";
+"Clear" = "清除";
+"Search" = "搜索";
+"Settings" = "设置";
+"About" = "关于";
+
+// MARK: - Tab Bar
+"Subscriptions" = "订阅";
+"Rules" = "规则";
+"Files" = "文件";
+"Share" = "分享";
+
+// MARK: - Subscriptions
+"Single Subscription" = "单条订阅";
+"Collection Subscription" = "组合订阅";
+"Subscription Name" = "订阅名称";
+"Subscription URL" = "订阅链接";
+"Subscription Type" = "订阅类型";
+"Enable Subscription" = "启用订阅";
+"Tags (comma separated)" = "标签 (用逗号分隔)";
+"Platform" = "平台";
+"Icon URL" = "图标链接";
+"Add Subscription" = "添加订阅";
+"Edit Subscription" = "编辑订阅";
+"No Subscriptions" = "暂无订阅";
+"No Subscriptions Description" = "点击右上角的 + 按钮添加您的第一个订阅";
+"Flow Info" = "流量信息";
+"Unlimited" = "无限制";
+
+// MARK: - Rules
+"Rule Name" = "规则名称";
+"Rule Type" = "规则类型";
+"Rule Content" = "规则内容";
+"Sync URL" = "同步链接";
+"Auto Sync" = "自动同步";
+"Last Sync" = "上次同步";
+"Enable Rule" = "启用规则";
+"Add Rule" = "添加规则";
+"Edit Rule" = "编辑规则";
+"No Rules" = "暂无规则";
+"Rules Under Development" = "规则功能开发中";
+"Rules Under Development Description" = "规则配置和同步功能正在开发中，敬请期待";
+
+// MARK: - Files
+"File Name" = "文件名称";
+"File Type" = "文件类型";
+"File Size" = "文件大小";
+"File Content" = "文件内容";
+"Read Only" = "只读";
+"Add File" = "添加文件";
+"Edit File" = "编辑文件";
+"No Files" = "暂无文件";
+"Files Under Development" = "文件功能开发中";
+"Files Under Development Description" = "文件管理功能正在开发中，敬请期待";
+
+// MARK: - Share
+"Share Name" = "分享名称";
+"Share Token" = "分享令牌";
+"Share URL" = "分享链接";
+"Access Count" = "访问次数";
+"Expiration Date" = "过期时间";
+"Create Share" = "创建分享";
+"Share Management" = "分享管理";
+"No Shares" = "暂无分享";
+"Share Under Development" = "分享功能开发中";
+"Share Under Development Description" = "分享管理功能正在开发中，敬请期待";
+
+// MARK: - Settings
+"Appearance" = "外观";
+"Theme Mode" = "主题模式";
+"Light Mode" = "浅色模式";
+"Dark Mode" = "深色模式";
+"Follow System" = "跟随系统";
+"Accent Color" = "强调色";
+"Use System Accent Color" = "使用系统强调色";
+"Show Flow Info" = "显示流量信息";
+"Show Subscription Icons" = "显示订阅图标";
+"Compact Mode" = "紧凑模式";
+"Animations Enabled" = "启用动画";
+"Haptic Feedback" = "触觉反馈";
+
+"Sync" = "同步";
+"Cloud Sync" = "云端同步";
+"Sync Platform" = "同步平台";
+"No Sync" = "不同步";
+"GitHub Gist" = "GitHub Gist";
+"GitLab Snippet" = "GitLab Snippet";
+"GitHub Username" = "GitHub 用户名";
+"Gist Token" = "Gist Token";
+"Sync Interval" = "同步间隔";
+
+"Network" = "网络";
+"Backend URL" = "后端地址";
+"Request Timeout" = "请求超时";
+"Retry Count" = "重试次数";
+"User Agent" = "用户代理";
+
+"Advanced" = "高级";
+"Reset Settings" = "重置设置";
+"Version" = "版本";
+
+// MARK: - About
+"App Name" = "Sub-Store";
+"App Description" = "高级订阅管理器";
+"Features" = "功能特性";
+"Feature 1" = "• 支持多种订阅格式转换";
+"Feature 2" = "• 强大的订阅格式化功能";
+"Feature 3" = "• 多订阅聚合管理";
+"Feature 4" = "• 规则管理和云端同步";
+"Feature 5" = "• 文件管理和编辑";
+"Open Source" = "开源项目";
+"GitHub Repository" = "GitHub 仓库";
+"Frontend Project" = "前端项目";
+
+// MARK: - Errors
+"Network Error" = "网络错误";
+"Invalid URL" = "无效的URL";
+"No Data" = "未收到数据";
+"Decoding Error" = "数据解析错误";
+"Server Error" = "服务器错误";
+"Unauthorized" = "未授权访问";
+"Timeout" = "请求超时";
+"Unknown Error" = "未知错误";
+"Validation Error" = "验证错误";
+"Storage Error" = "存储错误";
+
+// MARK: - Success Messages
+"Subscription Added" = "订阅添加成功";
+"Subscription Updated" = "订阅更新成功";
+"Subscription Deleted" = "订阅删除成功";
+"Rule Added" = "规则添加成功";
+"Rule Updated" = "规则更新成功";
+"Rule Deleted" = "规则删除成功";
+"Settings Saved" = "设置保存成功";
+"Sync Completed" = "同步完成";
+
+// MARK: - Validation Messages
+"Name Required" = "请输入名称";
+"URL Required" = "请输入URL";
+"Invalid URL Format" = "URL格式不正确";
+"Name Too Long" = "名称过长";
+"Invalid Token" = "Token格式不正确";
+
+// MARK: - Time
+"seconds" = "秒";
+"minutes" = "分钟";
+"hours" = "小时";
+"days" = "天";
+"weeks" = "周";
+"months" = "月";
+"years" = "年";
+"ago" = "前";
+"just now" = "刚刚";
+
+// MARK: - Data Units
+"B" = "B";
+"KB" = "KB";
+"MB" = "MB";
+"GB" = "GB";
+"TB" = "TB";
