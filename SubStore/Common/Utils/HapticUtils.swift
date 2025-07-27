@@ -1,5 +1,7 @@
 import SwiftUI
+#if canImport(UIKit)
 import UIKit
+#endif
 import AudioToolbox
 
 // MARK: - 触觉反馈管理器
@@ -23,24 +25,30 @@ class HapticManager: ObservableObject {
     
     // MARK: - 触觉反馈类型
     func impact(_ style: UIImpactFeedbackGenerator.FeedbackStyle) {
+        #if canImport(UIKit)
         guard isEnabled else { return }
         let generator = UIImpactFeedbackGenerator(style: style)
         generator.prepare()
         generator.impactOccurred()
+        #endif
     }
     
     func notification(_ type: UINotificationFeedbackGenerator.FeedbackType) {
+        #if canImport(UIKit)
         guard isEnabled else { return }
         let generator = UINotificationFeedbackGenerator()
         generator.prepare()
         generator.notificationOccurred(type)
+        #endif
     }
     
     func selection() {
+        #if canImport(UIKit)
         guard isEnabled else { return }
         let generator = UISelectionFeedbackGenerator()
         generator.prepare()
         generator.selectionChanged()
+        #endif
     }
     
     // MARK: - 预定义触觉反馈
@@ -179,10 +187,12 @@ struct HapticFeedbackModifier: ViewModifier {
         let hapticManager = HapticManager.shared
         
         switch hapticType {
+        #if canImport(UIKit)
         case .impact(let style):
             hapticManager.impact(style)
         case .notification(let type):
             hapticManager.notification(type)
+        #endif
         case .selection:
             hapticManager.selection()
         case .custom(let action):
@@ -193,8 +203,10 @@ struct HapticFeedbackModifier: ViewModifier {
 
 // MARK: - 触觉反馈类型
 enum HapticType {
+    #if canImport(UIKit)
     case impact(UIImpactFeedbackGenerator.FeedbackStyle)
     case notification(UINotificationFeedbackGenerator.FeedbackType)
+    #endif
     case selection
     case custom(() -> Void)
 }
@@ -230,10 +242,12 @@ struct HapticButtonStyle: ButtonStyle {
         let hapticManager = HapticManager.shared
         
         switch hapticType {
+        #if canImport(UIKit)
         case .impact(let style):
             hapticManager.impact(style)
         case .notification(let type):
             hapticManager.notification(type)
+        #endif
         case .selection:
             hapticManager.selection()
         case .custom(let action):
@@ -269,10 +283,12 @@ struct HapticToggle: View {
         let hapticManager = HapticManager.shared
         
         switch hapticType {
+        #if canImport(UIKit)
         case .impact(let style):
             hapticManager.impact(style)
         case .notification(let type):
             hapticManager.notification(type)
+        #endif
         case .selection:
             hapticManager.selection()
         case .custom(let action):
@@ -410,17 +426,18 @@ extension View {
 
 // MARK: - 触觉反馈常量
 extension HapticType {
+    #if canImport(UIKit)
     static let lightTap = HapticType.impact(.light)
     static let mediumTap = HapticType.impact(.medium)
     static let heavyTap = HapticType.impact(.heavy)
     static let success = HapticType.notification(.success)
     static let warning = HapticType.notification(.warning)
     static let error = HapticType.notification(.error)
-    static let selection = HapticType.selection
-    
     static let buttonPress = HapticType.impact(.light)
     static let cardTap = HapticType.impact(.light)
     static let switchToggle = HapticType.impact(.medium)
     static let longPress = HapticType.impact(.heavy)
     static let delete = HapticType.impact(.heavy)
+    #endif
+    static let selection = HapticType.selection
 }
