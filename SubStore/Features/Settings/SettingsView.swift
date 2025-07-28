@@ -1,46 +1,7 @@
 import SwiftUI
-
-// MARK: - 规则列表视图
-struct ArtifactsListView: View {
-    var body: some View {
-        NavigationStack {
-            EmptyStateView(
-                title: "规则功能开发中",
-                description: "规则配置和同步功能正在开发中，敬请期待",
-                systemImage: "gear"
-            )
-            .navigationTitle("规则")
-        }
-    }
-}
-
-// MARK: - 文件列表视图
-struct FilesListView: View {
-    var body: some View {
-        NavigationStack {
-            EmptyStateView(
-                title: "文件功能开发中",
-                description: "文件管理功能正在开发中，敬请期待",
-                systemImage: "doc.text"
-            )
-            .navigationTitle("文件")
-        }
-    }
-}
-
-// MARK: - 分享列表视图
-struct ShareListView: View {
-    var body: some View {
-        NavigationStack {
-            EmptyStateView(
-                title: "分享功能开发中",
-                description: "分享管理功能正在开发中，敬请期待",
-                systemImage: "square.and.arrow.up"
-            )
-            .navigationTitle("分享")
-        }
-    }
-}
+#if canImport(UIKit)
+import UIKit
+#endif
 
 // MARK: - 设置视图
 struct SettingsView: View {
@@ -367,7 +328,13 @@ struct SettingsView: View {
                     placeholder: "超时时间(毫秒)",
                     isEditing: isEditing,
                     systemImage: "clock",
-                    keyboardType: .numberPad
+                    keyboardType: {
+                        #if canImport(UIKit)
+                        return .numberPad
+                        #else
+                        return .default
+                        #endif
+                    }()
                 )
                 
                 ConfigInputView(
@@ -376,7 +343,13 @@ struct SettingsView: View {
                     placeholder: "缓存大小阈值",
                     isEditing: isEditing,
                     systemImage: "memorychip",
-                    keyboardType: .numberPad
+                    keyboardType: {
+                        #if canImport(UIKit)
+                        return .numberPad
+                        #else
+                        return .default
+                        #endif
+                    }()
                 )
             }
         }
@@ -392,7 +365,7 @@ struct SettingsView: View {
             SettingsRowView(
                 title: "主题模式",
                 systemImage: "paintbrush",
-                value: themeManager.currentTheme.mode.displayName,
+                value: themeManager.currentTheme.displayName,
                 destination: ThemeSettingsView()
             )
             
@@ -409,10 +382,11 @@ struct SettingsView: View {
                 destination: AboutView()
             )
             
-            SettingsRowView(
+            SettingsRowView<EmptyView>(
                 title: "版本",
                 systemImage: "tag",
-                value: AppConstants.App.version
+                value: AppConstants.App.version,
+                destination: nil
             )
         }
         .background(Color(UIColor.secondarySystemGroupedBackground))
@@ -484,7 +458,7 @@ struct SettingsView: View {
     private func handleFileImport(_ result: Result<[URL], Error>) {
         switch result {
         case .success(let urls):
-            guard let url = urls.first else { return }
+            guard urls.first != nil else { return }
             restoreIsLoading = true
             
             // 这里实现文件导入逻辑
@@ -506,7 +480,9 @@ struct ConfigInputView: View {
     let isEditing: Bool
     let systemImage: String
     var isSecure: Bool = false
+    #if canImport(UIKit)
     var keyboardType: UIKeyboardType = .default
+    #endif
     
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -530,7 +506,9 @@ struct ConfigInputView: View {
                         SecureField(placeholder, text: $text)
                     } else {
                         TextField(placeholder, text: $text)
+                            #if canImport(UIKit)
                             .keyboardType(keyboardType)
+                            #endif
                     }
                 } else {
                     Text(text.isEmpty ? placeholder : text)
@@ -552,32 +530,33 @@ struct ThemeSettingsView: View {
     var body: some View {
         List {
             Section("主题模式") {
-                ForEach(ThemeMode.allCases, id: \.self) { mode in
+                ForEach(ThemeManager.Theme.allCases, id: \.self) { theme in
                     HStack {
-                        Text(mode.displayName)
+                        Text(theme.displayName)
                         Spacer()
-                        if themeManager.currentTheme.mode == mode {
+                        if themeManager.currentTheme == theme {
                             Image(systemName: "checkmark")
                                 .foregroundColor(.accentColor)
                         }
                     }
                     .contentShape(Rectangle())
                     .onTapGesture {
-                        themeManager.setThemeMode(mode)
+                        themeManager.setTheme(theme)
                     }
                 }
             }
             
             Section("强调色") {
-                Toggle("使用系统强调色", isOn: Binding(
-                    get: { themeManager.currentTheme.useSystemAccentColor },
-                    set: { themeManager.useSystemAccentColor($0) }
-                ))
+                // 简化的强调色设置
+                SwiftUI.ColorPicker("强调色", selection: $themeManager.accentColor)
                 
-                if !themeManager.currentTheme.useSystemAccentColor {
-                    // 这里可以添加自定义颜色选择器
-                    Text("自定义颜色选择器")
-                        .foregroundColor(.secondary)
+                HStack {
+                    Text("当前强调色")
+                    Spacer()
+                    Rectangle()
+                        .fill(themeManager.accentColor)
+                        .frame(width: 30, height: 20)
+                        .cornerRadius(4)
                 }
             }
         }
@@ -649,9 +628,11 @@ struct NetworkSettingsView: View {
                         settingsManager.saveSettings()
                     }
                 ))
+                #if canImport(UIKit)
                 .keyboardType(.URL)
                 .autocapitalization(.none)
                 .disableAutocorrection(true)
+                #endif
                 
                 Stepper("请求超时: \(settingsManager.settings.network.timeout)秒", 
                        value: Binding(

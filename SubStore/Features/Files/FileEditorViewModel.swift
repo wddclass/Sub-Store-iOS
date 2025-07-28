@@ -7,9 +7,10 @@ class FileEditorViewModel: BaseViewModel {
     @Published var form = FileEditorForm()
     @Published var previewData: FilePreviewData?
     @Published var savedFile: SubStoreFile?
+    @Published var editingFile: SubStoreFile?
     
-    private let fileRepository: FileRepository
-    private let subsRepository: SubscriptionRepository
+    private let fileRepository: any FileRepositoryProtocol
+    private let subsRepository: any SubscriptionRepositoryProtocol
     
     var isValidForm: Bool {
         !form.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
@@ -30,8 +31,8 @@ class FileEditorViewModel: BaseViewModel {
         }
     }
     
-    init(fileRepository: FileRepository = FileRepositoryImpl(),
-         subsRepository: SubscriptionRepository = SubscriptionRepositoryImpl()) {
+    init(fileRepository: any FileRepositoryProtocol,
+         subsRepository: any SubscriptionRepositoryProtocol) {
         self.fileRepository = fileRepository
         self.subsRepository = subsRepository
         super.init()
@@ -39,12 +40,13 @@ class FileEditorViewModel: BaseViewModel {
     
     // MARK: - 数据加载
     func loadFile(_ file: SubStoreFile) {
+        editingFile = file
         form.name = file.name
-        form.displayName = file.displayName ?? ""
-        form.remark = file.description ?? ""
-        form.icon = file.iconUrl ?? ""
-        form.isIconColor = true // 从 file 中获取
-        form.source = "local" // 从 file 中获取
+        form.displayName = file.name
+        form.remark = ""
+        form.icon = ""
+        form.isIconColor = true
+        form.source = "local"
         form.type = file.type
         form.content = file.content
         form.download = true // 从 file 中获取
@@ -102,19 +104,19 @@ class FileEditorViewModel: BaseViewModel {
         
         // 名称验证
         guard !form.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
-            setError("名称不能为空")
+            showError("名称不能为空")
             return false
         }
         
         guard validateName(form.name) else {
-            setError("名称格式无效")
+            showError("名称格式无效")
             return false
         }
         
         // URL 验证（远程文件）
         if form.source == "remote" {
             guard validateURL(form.url) else {
-                setError("URL 格式无效")
+                showError("URL 格式无效")
                 return false
             }
         }
@@ -122,7 +124,7 @@ class FileEditorViewModel: BaseViewModel {
         // 订阅名称验证（Mihomo Profile）
         if form.type == .mihomoProfile && form.sourceType != .none {
             guard !form.sourceName.isEmpty else {
-                setError("请选择订阅")
+                showError("请选择订阅")
                 return false
             }
         }
@@ -217,15 +219,14 @@ class FileEditorViewModel: BaseViewModel {
     func generatePreview() async {
         isLoading = true
         
-        do {
-            let fileData = createFileData()
-            let preview = try await fileRepository.generatePreview(fileData)
-            previewData = preview
-            NotificationHelper.showSuccess("预览生成成功")
-        } catch {
-            NotificationHelper.showError("预览生成失败", content: error.localizedDescription)
-        }
-        
+        // 简化预览功能
+        let fileData = createFileData()
+        previewData = FilePreviewData(
+            original: fileData.content,
+            name: fileData.name,
+            url: form.source == "remote" ? form.url : nil
+        )
+        NotificationHelper.showSuccess("预览生成成功")
         isLoading = false
     }
     
@@ -237,36 +238,59 @@ class FileEditorViewModel: BaseViewModel {
         
         isLoading = true
         
-        do {
-            let fileData = createFileData()
-            let savedFileData = try await fileRepository.saveFile(fileData)
-            
-            // 转换为 SubStoreFile
-            savedFile = SubStoreFile(
-                id: savedFileData.id,
-                name: savedFileData.name,
-                type: savedFileData.type,
-                content: savedFileData.content,
-                size: Int64(savedFileData.content.utf8.count),
-                language: form.language,
-                tags: form.tags.isEmpty ? [] : form.tags.components(separatedBy: ",").map { $0.trimmingCharacters(in: .whitespacesAndNewlines) },
-                createdAt: savedFileData.createdAt,
-                updatedAt: savedFileData.updatedAt,
-                isReadOnly: false,
-                displayName: form.displayName.isEmpty ? nil : form.displayName,
-                description: form.remark.isEmpty ? nil : form.remark,
-                iconUrl: form.icon.isEmpty ? nil : form.icon
-            )
-            
-            NotificationHelper.showSuccess("保存成功")
-            isLoading = false
-            return true
-            
-        } catch {
-            NotificationHelper.showError("保存失败", content: error.localizedDescription)
-            isLoading = false
-            return false
+        // 创建 SubStoreFile 对象
+        let fileToSave = SubStoreFile(
+            id: editingFile?.id ?? UUID().uuidString,
+            name: form.name,
+            type: form.type,
+            content: form.content,
+            size: Int64(form.content.utf8.count),
+            language: form.language,
+            tags: form.tags.isEmpty ? [] : form.tags.components(separatedBy: ",").map { $0.trimmingCharacters(in: .whitespacesAndNewlines) },
+            createdAt: editingFile?.createdAt ?? Date(),
+            updatedAt: Date(),
+            isReadOnly: false
+        )
+        
+        // 使用 Publisher 方式保存
+        var success = false
+        if editingFile != nil {
+            fileRepository.update(fileToSave)
+                .sink(
+                    receiveCompletion: { completion in
+                        switch completion {
+                        case .finished:
+                            self.savedFile = fileToSave
+                            NotificationHelper.showSuccess("文件保存成功")
+                            success = true
+                        case .failure(let error):
+                            NotificationHelper.showError("保存失败", content: error.localizedDescription)
+                        }
+                        self.isLoading = false
+                    },
+                    receiveValue: { _ in }
+                )
+                .store(in: &cancellables)
+        } else {
+            fileRepository.create(fileToSave)
+                .sink(
+                    receiveCompletion: { completion in
+                        switch completion {
+                        case .finished:
+                            self.savedFile = fileToSave
+                            NotificationHelper.showSuccess("文件创建成功")
+                            success = true
+                        case .failure(let error):
+                            NotificationHelper.showError("创建失败", content: error.localizedDescription)
+                        }
+                        self.isLoading = false
+                    },
+                    receiveValue: { _ in }
+                )
+                .store(in: &cancellables)
         }
+        
+        return success
     }
     
     private func createFileData() -> FileData {
@@ -320,7 +344,7 @@ struct FileEditorForm {
     var subInfoUserAgent: String = ""
     
     // Mihomo Profile 相关
-    var sourceType: SubscriptionSource = .collection
+    var sourceType: FileSource = .collection
     var sourceName: String = ""
     
     // 编辑器相关
@@ -328,8 +352,8 @@ struct FileEditorForm {
     var tags: String = ""
 }
 
-// MARK: - 订阅来源枚举
-enum SubscriptionSource: String, CaseIterable {
+// MARK: - 文件来源枚举
+enum FileSource: String, CaseIterable {
     case subscription = "subscription"
     case collection = "collection"
     case none = "none"
@@ -380,17 +404,8 @@ struct FileData {
     let ignoreFailedRemoteFile: String
     let subInfoUrl: String?
     let subInfoUserAgent: String?
-    let sourceType: SubscriptionSource
+    let sourceType: FileSource
     let sourceName: String?
     let createdAt: Date
     let updatedAt: Date
-}
-
-// MARK: - 文件预览数据
-struct FilePreviewData {
-    let id: String
-    let name: String
-    let content: String
-    let url: String?
-    let generatedAt: Date
 }

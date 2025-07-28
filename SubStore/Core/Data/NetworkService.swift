@@ -59,7 +59,7 @@ struct APIRequest {
 }
 
 // MARK: - API Response
-struct APIResponse<T: Codable> {
+struct APIResponse<T: Codable>: Codable {
     let data: T?
     let message: String?
     let code: Int
@@ -100,17 +100,7 @@ class NetworkService: NetworkServiceProtocol {
         configuration.timeoutIntervalForResource = timeout * 2
         
         // 配置网络监控
-        let monitor = ClosureEventMonitor()
-        monitor.requestDidCreateTask = { request, task in
-            Logger.shared.debug("Network request created: \(request.url?.absoluteString ?? "unknown")")
-        }
-        monitor.requestDidComplete = { request, response, _, error in
-            if let error = error {
-                Logger.shared.error("Network request failed: \(error.localizedDescription)")
-            } else {
-                Logger.shared.debug("Network request completed: \(response?.statusCode ?? 0)")
-            }
-        }
+        let monitor = NetworkEventMonitor()
         
         self.session = Session(configuration: configuration, eventMonitors: [monitor])
     }
@@ -347,6 +337,21 @@ enum APIEndpoints {
             return .put
         case .deleteSub, .deleteArtifact, .deleteFile, .deleteShare:
             return .delete
+        }
+    }
+}
+
+// MARK: - Network Event Monitor
+class NetworkEventMonitor: EventMonitor, @unchecked Sendable {
+    func requestDidResume(_ request: Request) {
+        Logger.shared.debug("Network request started: \(request.request?.url?.absoluteString ?? "unknown")")
+    }
+    
+    func request(_ request: Request, didCompleteTask task: URLSessionTask, with error: AFError?) {
+        if let error = error {
+            Logger.shared.error("Network request failed: \(error.localizedDescription)")
+        } else if let response = task.response as? HTTPURLResponse {
+            Logger.shared.debug("Network request completed: \(response.statusCode)")
         }
     }
 }

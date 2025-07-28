@@ -1,4 +1,7 @@
 import SwiftUI
+#if canImport(UIKit)
+import UIKit
+#endif
 
 // MARK: - 手势工具类
 struct GestureUtils {
@@ -143,7 +146,7 @@ struct SwipeGestureView<Content: View>: View {
     }
     
     private func handleDragChanged(_ value: DragGesture.Value) {
-        let translation = value.translation.x * config.sensitivity
+        let translation = value.translation.width * config.sensitivity
         
         // 确定滑动方向
         if translation > 0 && !leftActions.isEmpty {
@@ -156,15 +159,17 @@ struct SwipeGestureView<Content: View>: View {
         
         // 触觉反馈
         if config.hapticFeedback && abs(translation) > config.threshold && !isPresentingActions {
+            #if canImport(UIKit)
             let impactFeedback = UIImpactFeedbackGenerator(style: .medium)
             impactFeedback.impactOccurred()
+            #endif
             isPresentingActions = true
         }
     }
     
     private func handleDragEnded(_ value: DragGesture.Value) {
-        let translation = value.translation.x * config.sensitivity
-        let velocity = value.velocity.x
+        let translation = value.translation.width * config.sensitivity
+        let velocity = value.velocity.width
         
         withAnimation(config.animation) {
             if abs(translation) > config.threshold || abs(velocity) > 500 {
@@ -224,8 +229,10 @@ struct SwipeActionButton: View {
     var body: some View {
         Button {
             // 触觉反馈
+            #if canImport(UIKit)
             let impactFeedback = UIImpactFeedbackGenerator(style: .heavy)
             impactFeedback.impactOccurred()
+            #endif
             
             action.action()
         } label: {
@@ -238,7 +245,8 @@ struct SwipeActionButton: View {
                     .fontWeight(.medium)
             }
             .foregroundColor(.white)
-            .frame(width: 80, maxHeight: .infinity)
+            .frame(width: 80)
+            .frame(maxHeight: .infinity)
             .background(action.color)
         }
         .scaleEffect(isPressed ? 0.95 : 1.0)
@@ -275,14 +283,18 @@ struct LongPressGestureModifier: ViewModifier {
                     
                     if pressing {
                         if config.hapticFeedback {
+                            #if canImport(UIKit)
                             let impactFeedback = UIImpactFeedbackGenerator(style: .light)
                             impactFeedback.impactOccurred()
+                            #endif
                         }
                         
                         pressTimer = Timer.scheduledTimer(withTimeInterval: config.minimumDuration, repeats: false) { _ in
                             if config.hapticFeedback {
+                                #if canImport(UIKit)
                                 let impactFeedback = UIImpactFeedbackGenerator(style: .heavy)
                                 impactFeedback.impactOccurred()
+                                #endif
                             }
                         }
                     } else {
@@ -321,8 +333,8 @@ struct PullToRefreshModifier: ViewModifier {
             .gesture(
                 DragGesture()
                     .onChanged { value in
-                        if value.translation.y > 0 && !isRefreshing {
-                            offset = min(value.translation.y, threshold * 1.5)
+                        if value.translation.height > 0 && !isRefreshing {
+                            offset = min(value.translation.height, threshold * 1.5)
                         }
                     }
                     .onEnded { value in

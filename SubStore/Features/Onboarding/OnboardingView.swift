@@ -1,4 +1,7 @@
 import SwiftUI
+#if canImport(UIKit)
+import UIKit
+#endif
 
 // MARK: - 用户引导视图
 struct OnboardingView: View {
@@ -50,10 +53,12 @@ struct OnboardingView: View {
                 }
             }
             .tabViewStyle(PageTabViewStyle(indexDisplayMode: .never))
-            .onChanged(of: currentPage) { _, _ in
+            .onChange(of: currentPage) { _ in
                 // 添加触觉反馈
+                #if canImport(UIKit)
                 let impactFeedback = UIImpactFeedbackGenerator(style: .light)
                 impactFeedback.impactOccurred()
+                #endif
             }
             
             // 底部控制区域
@@ -72,7 +77,7 @@ struct OnboardingView: View {
                         }
                         .foregroundColor(.secondary)
                         .scaleEffect(isButtonAnimating ? 0.95 : 1.0)
-                        .transition(.slideTransition(from: .leading))
+                        .transition(.slide)
                     }
                     
                     Spacer()
@@ -84,8 +89,10 @@ struct OnboardingView: View {
                         }
                         
                         // 添加触觉反馈
+                        #if canImport(UIKit)
                         let impactFeedback = UIImpactFeedbackGenerator(style: .medium)
                         impactFeedback.impactOccurred()
+                        #endif
                         
                         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                             if currentPage == pages.count - 1 {
@@ -109,8 +116,14 @@ struct OnboardingView: View {
             }
             .padding(.bottom, AppConstants.UI.Spacing.extraLarge)
         }
-        .background(Color(.systemBackground))
-        .transition(.modal)
+        .background {
+            #if canImport(UIKit)
+            Color(.systemBackground)
+            #else
+            Color(NSColor.controlBackgroundColor)
+            #endif
+        }
+        .transition(.opacity)
     }
 }
 

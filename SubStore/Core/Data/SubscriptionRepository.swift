@@ -1,6 +1,7 @@
 import Foundation
 import Combine
 import CoreData
+import Alamofire
 
 // MARK: - Subscription Repository Implementation
 class SubscriptionRepository: SubscriptionRepositoryProtocol {
@@ -119,11 +120,7 @@ class SubscriptionRepository: SubscriptionRepositoryProtocol {
                 }
             })
             .mapError { error in
-                if error is NetworkError {
-                    return error
-                } else {
-                    return AppError.unknownError(error.localizedDescription)
-                }
+                return AppError.networkError(error.localizedDescription)
             }
             .eraseToAnyPublisher()
     }
@@ -191,7 +188,7 @@ class SubscriptionRepository: SubscriptionRepositoryProtocol {
                 }
             })
             .catch { _ in
-                Just(nil)
+                Just(nil).setFailureType(to: Error.self)
             }
             .eraseToAnyPublisher()
     }
@@ -228,12 +225,12 @@ class SubscriptionRepository: SubscriptionRepositoryProtocol {
     }
     
     func testConnection(for subscription: Subscription) -> AnyPublisher<Bool, Error> {
-        guard let url = URL(string: subscription.url) else {
+        guard let urlString = subscription.url, !urlString.isEmpty else {
             return Fail(error: AppError.validationError("Invalid subscription URL"))
                 .eraseToAnyPublisher()
         }
         
-        return networkService.download(from: subscription.url)
+        return networkService.download(from: urlString)
             .map { _ in true }
             .catch { _ in Just(false) }
             .setFailureType(to: Error.self)

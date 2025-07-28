@@ -1,4 +1,11 @@
 import SwiftUI
+import Combine
+#if canImport(UIKit)
+import UIKit
+#endif
+#if canImport(AppKit)
+import AppKit
+#endif
 
 // MARK: - 分享列表视图
 struct ShareListView: View {
@@ -31,7 +38,11 @@ struct ShareListView: View {
                     .padding(.horizontal)
                 }
                 .padding(.vertical, AppConstants.UI.Spacing.small)
-                .background(Color(.systemGray6))
+                #if canImport(UIKit)
+                .background(Color(UIColor.quaternarySystemFill))
+                #else
+                .background(Color.gray.opacity(0.05))
+                #endif
                 
                 // 主内容区域
                 if viewModel.isLoading {
@@ -63,8 +74,11 @@ struct ShareListView: View {
                 }
             }
             .navigationTitle("分享管理")
+            #if os(iOS)
             .navigationBarTitleDisplayMode(.large)
+            #endif
             .toolbar {
+                #if os(iOS)
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button {
                         viewModel.showingAddSheet = true
@@ -72,6 +86,15 @@ struct ShareListView: View {
                         Image(systemName: "plus")
                     }
                 }
+                #else
+                ToolbarItem(placement: .primaryAction) {
+                    Button {
+                        viewModel.showingAddSheet = true
+                    } label: {
+                        Image(systemName: "plus")
+                    }
+                }
+                #endif
             }
             .sheet(isPresented: $viewModel.showingAddSheet) {
                 ShareCreatorView { share in
@@ -178,7 +201,11 @@ struct ShareRowView: View {
         }
         .swipeActions(edge: .leading, allowsFullSwipe: false) {
             Button("复制链接") {
+                #if canImport(UIKit)
                 UIPasteboard.general.string = share.shareURL
+                #elseif canImport(AppKit)
+                NSPasteboard.general.setString(share.shareURL, forType: .string)
+                #endif
             }
             .tint(.cyan)
             
@@ -307,7 +334,7 @@ struct ShareCreatorView: View {
                             Text(target.name).tag(target.id)
                         }
                     }
-                    .onChange(of: selectedTargetID) { targetID in
+                    .onChange(of: selectedTargetID) { _, targetID in
                         if let target = filteredTargets.first(where: { $0.id == targetID }) {
                             selectedTargetName = target.name
                             if name.isEmpty {
@@ -328,27 +355,29 @@ struct ShareCreatorView: View {
                 }
             }
             .navigationTitle("创建分享")
+            #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
+            #endif
             .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
+                ToolbarItem(placement: .cancellationAction) {
                     Button("取消") {
                         dismiss()
                     }
                 }
                 
-                ToolbarItem(placement: .navigationBarTrailing) {
+                ToolbarItem(placement: .primaryAction) {
                     Button("创建") {
                         createShare()
                     }
                     .disabled(name.isEmpty || selectedTargetID.isEmpty)
                 }
             }
-        }
-        .onAppear {
-            if let firstTarget = filteredTargets.first {
-                selectedTargetID = firstTarget.id
-                selectedTargetName = firstTarget.name
-                name = "分享 - \(firstTarget.name)"
+            .onAppear {
+                if let firstTarget = filteredTargets.first {
+                    selectedTargetID = firstTarget.id
+                    selectedTargetName = firstTarget.name
+                    name = "分享 - \(firstTarget.name)"
+                }
             }
         }
     }
@@ -442,15 +471,17 @@ struct ShareEditorView: View {
                 }
             }
             .navigationTitle("编辑分享")
+            #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
+            #endif
             .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
+                ToolbarItem(placement: .cancellationAction) {
                     Button("取消") {
                         dismiss()
                     }
                 }
                 
-                ToolbarItem(placement: .navigationBarTrailing) {
+                ToolbarItem(placement: .primaryAction) {
                     Button("保存") {
                         saveShare()
                     }
@@ -506,7 +537,11 @@ struct ShareDetailView: View {
                         
                         HStack {
                             Button("复制链接") {
+                                #if canImport(UIKit)
                                 UIPasteboard.general.string = share.shareURL
+                                #elseif canImport(AppKit)
+                                NSPasteboard.general.setString(share.shareURL, forType: .string)
+                                #endif
                             }
                             .buttonStyle(.bordered)
                             
@@ -552,9 +587,11 @@ struct ShareDetailView: View {
                 }
             }
             .navigationTitle(share.name)
+            #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
+            #endif
             .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
+                ToolbarItem(placement: .primaryAction) {
                     Button("完成") {
                         dismiss()
                     }
@@ -594,7 +631,11 @@ struct QRCodeView: View {
                     .foregroundColor(.secondary)
                     .textSelection(.enabled)
                     .padding()
-                    .background(Color(.systemGray6))
+                    #if canImport(UIKit)
+                    .background(Color(UIColor.quaternarySystemFill))
+                    #else
+                    .background(Color.gray.opacity(0.05))
+                    #endif
                     .cornerRadius(8)
                 
                 Button("保存到相册") {
@@ -604,9 +645,11 @@ struct QRCodeView: View {
             }
             .padding()
             .navigationTitle("分享二维码")
+            #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
+            #endif
             .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
+                ToolbarItem(placement: .primaryAction) {
                     Button("完成") {
                         dismiss()
                     }

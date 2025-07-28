@@ -16,10 +16,10 @@ struct NodeInfo: Codable, Identifiable {
     let addresses: [String]?
     
     // 其他动态属性
-    let extraProperties: [String: Any]?
+    let extraProperties: [String: String]?
     
     enum CodingKeys: String, CodingKey {
-        case id, name, type, server, port, udp, tfo, aead, addresses
+        case id, name, type, server, port, udp, tfo, aead, addresses, extraProperties
         case localPort = "local-port"
         case fastOpen = "fast-open"
         case skipCertVerify = "skip-cert-verify"
@@ -296,7 +296,6 @@ struct CompareTableView: View {
             }
         }
         .font(.caption)
-        .fontWeight(.bold)
         .foregroundColor(.secondary)
         .padding(.horizontal)
         .padding(.vertical, 8)

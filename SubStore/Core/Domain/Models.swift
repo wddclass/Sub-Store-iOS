@@ -8,6 +8,8 @@ struct Subscription: Codable, Identifiable, Hashable {
     var url: String?
     var content: String?
     var source: SubscriptionSource
+    var type: SubscriptionType
+    var platform: String?
     var icon: String?
     var isIconColor: Bool
     var tags: [String]
@@ -32,6 +34,8 @@ struct Subscription: Codable, Identifiable, Hashable {
         url: String? = nil,
         content: String? = nil,
         source: SubscriptionSource = .remote,
+        type: SubscriptionType = .single,
+        platform: String? = nil,
         icon: String? = nil,
         isIconColor: Bool = true,
         tags: [String] = [],
@@ -55,6 +59,8 @@ struct Subscription: Codable, Identifiable, Hashable {
         self.url = url
         self.content = content
         self.source = source
+        self.type = type
+        self.platform = platform
         self.icon = icon
         self.isIconColor = isIconColor
         self.tags = tags
@@ -161,12 +167,31 @@ struct FlowInfo: Codable, Hashable {
         guard let remaining = remaining else { return "未知" }
         return ByteCountFormatter.string(fromByteCount: remaining, countStyle: .binary)
     }
+    
+    var status: FlowStatus {
+        if isUnlimited {
+            return .unlimited
+        }
+        
+        guard let percentage = percentage else {
+            return .normal
+        }
+        
+        if percentage >= 90 {
+            return .critical
+        } else if percentage >= 75 {
+            return .warning
+        } else {
+            return .normal
+        }
+    }
 }
 
 // MARK: - Artifact Model
 struct Artifact: Codable, Identifiable, Hashable {
     let id: String
     var name: String
+    var description: String?
     var type: ArtifactType
     var content: String
     var platform: String?
@@ -181,6 +206,7 @@ struct Artifact: Codable, Identifiable, Hashable {
     init(
         id: String = UUID().uuidString,
         name: String,
+        description: String? = nil,
         type: ArtifactType,
         content: String = "",
         platform: String? = nil,
@@ -194,6 +220,7 @@ struct Artifact: Codable, Identifiable, Hashable {
     ) {
         self.id = id
         self.name = name
+        self.description = description
         self.type = type
         self.content = content
         self.platform = platform
@@ -217,6 +244,9 @@ enum ArtifactType: String, CaseIterable, Codable {
     case cron = "cron"
     case dns = "dns"
     case general = "general"
+    case rule = "rule"
+    case filter = "filter"
+    case header = "header"
     
     var displayName: String {
         switch self {
@@ -236,6 +266,12 @@ enum ArtifactType: String, CaseIterable, Codable {
             return "DNS 规则"
         case .general:
             return "通用配置"
+        case .rule:
+            return "分流规则"
+        case .filter:
+            return "过滤规则"
+        case .header:
+            return "请求头规则"
         }
     }
     
@@ -257,12 +293,18 @@ enum ArtifactType: String, CaseIterable, Codable {
             return "network"
         case .general:
             return "gearshape"
+        case .rule:
+            return "list.bullet"
+        case .filter:
+            return "funnel"
+        case .header:
+            return "doc.badge.gearshape"
         }
     }
     
     var codeLanguage: String {
         switch self {
-        case .rewrite, .redirect, .headerRewrite, .mitm, .dns, .general:
+        case .rewrite, .redirect, .headerRewrite, .mitm, .dns, .general, .rule, .filter, .header:
             return "plaintext"
         case .script:
             return "javascript"
@@ -273,7 +315,7 @@ enum ArtifactType: String, CaseIterable, Codable {
     
     var fileExtension: String {
         switch self {
-        case .rewrite, .redirect, .headerRewrite, .mitm, .dns:
+        case .rewrite, .redirect, .headerRewrite, .mitm, .dns, .rule, .filter, .header:
             return "txt"
         case .script:
             return "js"

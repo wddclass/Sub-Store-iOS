@@ -1,5 +1,11 @@
 import SwiftUI
 import CoreImage.CIFilterBuiltins
+#if canImport(UIKit)
+import UIKit
+#endif
+#if canImport(AppKit)
+import AppKit
+#endif
 
 // MARK: - 节点信息面板视图
 struct NodeInfoPanelView: View {
@@ -8,10 +14,14 @@ struct NodeInfoPanelView: View {
     @Binding var isPresented: Bool
     
     @State private var selectedTab = 0
+    #if canImport(UIKit)
     @State private var qrCodeImage: UIImage?
+    #else
+    @State private var qrCodeImage: NSImage?
+    #endif
     
     var body: some View {
-        NavigationStack {
+        NavigationView {
             TabView(selection: $selectedTab) {
                 // 节点信息标签页
                 nodeInfoTab
@@ -40,17 +50,19 @@ struct NodeInfoPanelView: View {
                     .tag(ipApiData != nil ? 2 : 1)
             }
             .navigationTitle("节点详情")
+            #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
+            #endif
             .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
+                ToolbarItem(placement: .primaryAction) {
                     Button("完成") {
                         isPresented = false
                     }
                 }
             }
-        }
-        .onAppear {
-            generateQRCode()
+            .onAppear {
+                generateQRCode()
+            }
         }
     }
     
@@ -195,8 +207,11 @@ struct NodeInfoPanelView: View {
                         .foregroundColor(.secondary)
                         .textSelection(.enabled)
                         .padding()
+                        #if canImport(UIKit)
                         .background(Color(UIColor.secondarySystemGroupedBackground))
-                        .cornerRadius(8)
+                        #else
+                        .background(Color.gray.opacity(0.1))
+                        #endif
                 }
                 .padding(.horizontal)
                 
@@ -210,7 +225,11 @@ struct NodeInfoPanelView: View {
                     .foregroundColor(.accentColor)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 12)
+                    #if canImport(UIKit)
                     .background(Color(UIColor.tertiarySystemGroupedBackground))
+                    #else
+                    .background(Color.gray.opacity(0.05))
+                    #endif
                     .cornerRadius(8)
                 }
                 .padding(.horizontal)
@@ -220,6 +239,7 @@ struct NodeInfoPanelView: View {
     }
     
     // MARK: - 二维码视图
+    #if canImport(UIKit)
     private func qrCodeView(_ qrImage: UIImage) -> some View {
         VStack(spacing: 12) {
             Text("分享二维码")
@@ -239,10 +259,39 @@ struct NodeInfoPanelView: View {
                 .foregroundColor(.secondary)
         }
         .padding()
+        #if canImport(UIKit)
         .background(Color(UIColor.secondarySystemGroupedBackground))
+        #else
+        .background(Color.gray.opacity(0.1))
+        #endif
         .cornerRadius(12)
         .padding(.horizontal)
     }
+    #else
+    private func qrCodeView(_ qrImage: NSImage) -> some View {
+        VStack(spacing: 12) {
+            Text("分享二维码")
+                .font(.headline)
+            
+            Image(nsImage: qrImage)
+                .interpolation(.none)
+                .resizable()
+                .aspectRatio(contentMode: .fit)
+                .frame(width: 120, height: 120)
+                .background(Color.white)
+                .cornerRadius(8)
+                .shadow(color: .black.opacity(0.1), radius: 4, x: 0, y: 2)
+            
+            Text("扫描二维码使用此节点")
+                .font(.caption)
+                .foregroundColor(.secondary)
+        }
+        .padding()
+        .background(Color.gray.opacity(0.1))
+        .cornerRadius(12)
+        .padding(.horizontal)
+    }
+    #endif
     
     // MARK: - 辅助方法
     private func cityString(from info: IPApiData.IPInfo) -> String {
@@ -315,13 +364,21 @@ struct NodeInfoPanelView: View {
             let scaledImage = outputImage.transformed(by: transform)
             
             if let cgImage = context.createCGImage(scaledImage, from: scaledImage.extent) {
+                #if canImport(UIKit)
                 qrCodeImage = UIImage(cgImage: cgImage)
+                #else
+                qrCodeImage = NSImage(cgImage: cgImage, size: NSSize(width: scaledImage.extent.width, height: scaledImage.extent.height))
+                #endif
             }
         }
     }
     
     private func copyJSONToClipboard() {
+        #if canImport(UIKit)
         UIPasteboard.general.string = nodeInfoJSON
+        #elseif canImport(AppKit)
+        NSPasteboard.general.setString(nodeInfoJSON, forType: .string)
+        #endif
         
         // 显示复制成功的通知
         NotificationHelper.showSuccess("已复制", content: "JSON 配置已复制到剪贴板")
@@ -354,7 +411,11 @@ struct InfoRowView: View {
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 8)
+        #if canImport(UIKit)
         .background(Color(UIColor.tertiarySystemGroupedBackground))
+        #else
+        .background(Color.gray.opacity(0.05))
+        #endif
         .cornerRadius(8)
     }
 }
@@ -380,7 +441,11 @@ struct FloatingNodeInfoPanel: View {
                 ipApiData: ipApiData,
                 isPresented: $isPresented
             )
+            #if canImport(UIKit)
             .background(Color(UIColor.systemBackground))
+            #else
+            .background(Color.white)
+            #endif
             .cornerRadius(16)
             .shadow(radius: 20)
             .padding()

@@ -47,7 +47,7 @@ struct BackendConfigView: View {
     }
     
     var body: some View {
-        NavigationStack {
+        NavigationView {
             VStack(spacing: 24) {
                 // 标题和描述
                 VStack(spacing: 16) {
@@ -81,9 +81,11 @@ struct BackendConfigView: View {
                 VStack(alignment: .leading, spacing: 12) {
                     TextField("输入后端地址", text: $magicPath)
                         .textFieldStyle(RoundedBorderTextFieldStyle())
+                        #if canImport(UIKit)
                         .keyboardType(.URL)
                         .autocapitalization(.none)
                         .disableAutocorrection(true)
+                        #endif
                         .onSubmit {
                             handleConnect()
                         }

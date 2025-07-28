@@ -1,4 +1,7 @@
 import SwiftUI
+#if canImport(UIKit)
+import UIKit
+#endif
 
 // MARK: - 微交互组件库
 struct MicroInteractionComponents {
@@ -112,7 +115,11 @@ struct MicroInteractionComponents {
                         .padding(.vertical, 4)
                         .background(
                             Capsule()
-                                .fill(Color(.systemBackground))
+                                #if canImport(UIKit)
+                                .fill(Color(UIColor.systemBackground))
+                                #else
+                                .fill(Color.white)
+                                #endif
                                 .shadow(radius: 2)
                         )
                         .opacity(isVisible ? 1 : 0)
@@ -136,7 +143,7 @@ struct MicroInteractionComponents {
                     .delay(Double(index) * 0.1),
                 value: isVisible
             )
-            .onChange(of: isExpanded) { _, newValue in
+            .onChange(of: isExpanded) { newValue in
                 isVisible = newValue
             }
         }
@@ -202,12 +209,11 @@ struct MicroInteractionComponents {
         
         var body: some View {
             Text(formatter(animatedCount))
-                .font(.system(.title2, design: .rounded, weight: .bold))
-                .contentTransition(.numericText())
+                .font(.system(size: 20, weight: .bold, design: .rounded))
                 .onAppear {
                     animateCount()
                 }
-                .onChange(of: count) { _, _ in
+                .onChange(of: count) { _ in
                     animateCount()
                 }
         }
@@ -288,7 +294,7 @@ struct MicroInteractionComponents {
                     animatedProgress = progress
                 }
             }
-            .onChange(of: progress) { _, newValue in
+            .onChange(of: progress) { newValue in
                 withAnimation(AnimationUtils.smooth) {
                     animatedProgress = newValue
                 }
@@ -319,7 +325,11 @@ struct MicroInteractionComponents {
             content
                 .background(
                     RoundedRectangle(cornerRadius: cornerRadius)
-                        .fill(Color(.systemBackground))
+                        #if canImport(UIKit)
+                        .fill(Color(UIColor.systemBackground))
+                        #else
+                        .fill(Color.white)
+                        #endif
                         .shadow(
                             color: .black.opacity(isHovered ? 0.15 : 0.1),
                             radius: isHovered ? 12 : 8,

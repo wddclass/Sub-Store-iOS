@@ -1,4 +1,7 @@
 import SwiftUI
+#if canImport(UIKit)
+import UIKit
+#endif
 
 // MARK: - 订阅列表视图
 struct SubsListView: View {
@@ -105,9 +108,14 @@ struct SubsListView: View {
                 }
             }
             .sheet(isPresented: $viewModel.showingImportSheet) {
+                #if canImport(UIKit)
                 DocumentPicker { url in
                     viewModel.importSubscriptions(from: url)
                 }
+                #else
+                // For macOS, use fileImporter instead
+                EmptyView()
+                #endif
             }
         }
         .onAppear {
@@ -126,152 +134,184 @@ struct SubRowView: View {
     @State private var isLongPressing = false
     
     var body: some View {
-        HStack(spacing: AppConstants.UI.Spacing.medium) {
-            // 订阅图标
-            SubscriptionIconView(subscription: subscription)
-                .scaleEffect(isLongPressing ? 1.1 : 1.0)
-                .animation(AnimationUtils.springBouncy, value: isLongPressing)
-            
-            // 订阅信息
-            VStack(alignment: .leading, spacing: AppConstants.UI.Spacing.tiny) {
-                HStack {
-                    Text(subscription.displayName ?? subscription.name)
-                        .font(.headline)
-                        .foregroundColor(.primary)
-                    
-                    if !subscription.isEnabled {
-                        Image(systemName: "pause.circle.fill")
-                            .font(.caption)
-                            .foregroundColor(.orange)
-                            .scaleEffect(isLongPressing ? 1.2 : 1.0)
-                            .animation(AnimationUtils.springBouncy, value: isLongPressing)
-                    }
-                    
-                    Spacer()
-                }
-                
-                if let url = subscription.url {
-                    Text(url.truncated(limit: 50))
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                } else if subscription.source == .local {
-                    Text("本地内容")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                }
-                
-                // 标签
-                if !subscription.tags.isEmpty {
-                    HStack {
-                        ForEach(subscription.tags.prefix(3), id: \.self) { tag in
-                            Text("#\(tag)")
-                                .font(.caption2)
-                                .padding(.horizontal, 6)
-                                .padding(.vertical, 2)
-                                .background(Color.accentColor.opacity(0.1))
-                                .foregroundColor(.accentColor)
-                                .clipShape(Capsule())
-                                .scaleEffect(isLongPressing ? 1.05 : 1.0)
-                                .animation(AnimationUtils.springBouncy.delay(Double(subscription.tags.firstIndex(of: tag) ?? 0) * 0.1), value: isLongPressing)
-                        }
-                        
-                        if subscription.tags.count > 3 {
-                            Text("+\(subscription.tags.count - 3)")
-                                .font(.caption2)
-                                .foregroundColor(.secondary)
-                        }
-                        
-                        Spacer()
-                    }
-                }
+        subscriptionRowContent
+            .padding(.vertical, AppConstants.UI.Spacing.small)
+            .background(subscriptionRowBackground)
+            .contentShape(Rectangle())
+            .cardHover()
+            .onTapGesture {
+                showingDetail = true
             }
-            
-            // 流量信息
-            if let flow = subscription.flow {
-                FlowInfoView(flowInfo: flow)
-                    .scaleEffect(isLongPressing ? 1.05 : 1.0)
-                    .animation(AnimationUtils.springBouncy.delay(0.1), value: isLongPressing)
-            }
-        }
-        .padding(.vertical, AppConstants.UI.Spacing.small)
-        .background(
-            RoundedRectangle(cornerRadius: 12)
-                .fill(Color(.systemBackground))
-                .shadow(color: isLongPressing ? .accentColor.opacity(0.3) : .clear, radius: isLongPressing ? 8 : 0)
-        )
-        .contentShape(Rectangle())
-        .cardHover()
-        .onTapGesture {
-            showingDetail = true
-        }
-        .longPressGesture(
-            config: .quick,
-            onLongPress: {
-                showingActionSheet = true
-                isLongPressing = false
-            }
-        )
-        .swipeActions(
-            left: [
-                .init(title: "测试", icon: "checkmark.shield", color: .purple) {
-                    viewModel.testSubscription(subscription)
-                },
-                .copy {
-                    UIPasteboard.general.string = subscription.url ?? subscription.content ?? ""
-                }
-            ],
-            right: [
-                .init(title: subscription.isEnabled ? "禁用" : "启用", 
-                      icon: subscription.isEnabled ? "pause" : "play", 
-                      color: subscription.isEnabled ? .orange : .green) {
-                    viewModel.toggleSubscriptionStatus(subscription)
-                },
-                .edit {
-                    viewModel.editingSubscription = subscription
-                },
-                .delete {
-                    // 删除逻辑将通过 ActionSheet 确认
+            .longPressGesture(
+                config: .quick,
+                onLongPress: {
                     showingActionSheet = true
+                    isLongPressing = false
                 }
-            ],
-            config: .light
-        )
-        .sheet(isPresented: $showingDetail) {
-            SubDetailView(subscription: subscription, viewModel: viewModel)
-                .transition(.modal)
+            )
+            .swipeActions(
+                left: leftSwipeActions,
+                right: rightSwipeActions
+            )
+            .sheet(isPresented: $showingDetail) {
+                subscriptionDetailSheet
+            }
+            .actionSheet(isPresented: $showingActionSheet) {
+                subscriptionActionSheet
+            }
+    }
+    
+    // MARK: - View Components
+    private var subscriptionRowContent: some View {
+        HStack(spacing: AppConstants.UI.Spacing.medium) {
+            subscriptionIconSection
+            subscriptionInfoSection
+            if let flow = subscription.flow {
+                flowInfoSection(flow)
+            }
         }
-        .confirmationDialog("订阅操作", isPresented: $showingActionSheet) {
-            Button("测试连接") {
+    }
+    
+    private var subscriptionIconSection: some View {
+        SubscriptionIconView(subscription: subscription)
+            .scaleEffect(isLongPressing ? 1.1 : 1.0)
+            .animation(AnimationUtils.springBouncy, value: isLongPressing)
+    }
+    
+    private var subscriptionInfoSection: some View {
+        VStack(alignment: .leading, spacing: AppConstants.UI.Spacing.tiny) {
+            subscriptionTitleRow
+            subscriptionURLSection
+            if !subscription.tags.isEmpty {
+                subscriptionTagsSection
+            }
+        }
+    }
+    
+    private var subscriptionTitleRow: some View {
+        HStack {
+            Text(subscription.displayName ?? subscription.name)
+                .font(.headline)
+                .foregroundColor(.primary)
+            
+            if !subscription.isEnabled {
+                Image(systemName: "pause.circle.fill")
+                    .font(.caption)
+                    .foregroundColor(.orange)
+                    .scaleEffect(isLongPressing ? 1.2 : 1.0)
+                    .animation(AnimationUtils.springBouncy, value: isLongPressing)
+            }
+            
+            Spacer()
+        }
+    }
+    
+    private var subscriptionURLSection: some View {
+        Group {
+            if let url = subscription.url {
+                Text(url.truncated(limit: 50))
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            } else if subscription.source == .local {
+                Text("本地内容")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+        }
+    }
+    
+    private var subscriptionTagsSection: some View {
+        HStack {
+            ForEach(subscription.tags.prefix(3), id: \.self) { tag in
+                Text("#\(tag)")
+                    .font(.caption2)
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 2)
+                    .background(Color.accentColor.opacity(0.1))
+                    .foregroundColor(.accentColor)
+                    .clipShape(Capsule())
+                    .scaleEffect(isLongPressing ? 1.05 : 1.0)
+                    .animation(AnimationUtils.springBouncy.delay(Double(subscription.tags.firstIndex(of: tag) ?? 0) * 0.1), value: isLongPressing)
+            }
+            
+            if subscription.tags.count > 3 {
+                Text("+\(subscription.tags.count - 3)")
+                    .font(.caption2)
+                    .foregroundColor(.secondary)
+            }
+            
+            Spacer()
+        }
+    }
+    
+    private func flowInfoSection(_ flow: FlowInfo) -> some View {
+        FlowInfoView(flowInfo: flow)
+            .scaleEffect(isLongPressing ? 1.05 : 1.0)
+            .animation(AnimationUtils.springBouncy.delay(0.1), value: isLongPressing)
+    }
+    
+    private var subscriptionRowBackground: some View {
+        RoundedRectangle(cornerRadius: 12)
+            .fill(Color(.systemBackground))
+            .shadow(color: isLongPressing ? .accentColor.opacity(0.3) : .clear, radius: isLongPressing ? 8 : 0)
+    }
+    
+    private var leftSwipeActions: [SwipeAction] {
+        [
+            .init(title: "测试", icon: "checkmark.shield", color: .purple) {
                 viewModel.testSubscription(subscription)
-            }
-            
-            Button("编辑订阅") {
-                viewModel.editingSubscription = subscription
-            }
-            
-            Button("复制链接") {
+            },
+            .copy {
                 UIPasteboard.general.string = subscription.url ?? subscription.content ?? ""
             }
-            
-            Button(subscription.isEnabled ? "禁用订阅" : "启用订阅") {
+        ]
+    }
+    
+    private var rightSwipeActions: [SwipeAction] {
+        [
+            .init(title: subscription.isEnabled ? "禁用" : "启用", 
+                  icon: subscription.isEnabled ? "pause" : "play", 
+                  color: subscription.isEnabled ? .orange : .green) {
                 viewModel.toggleSubscriptionStatus(subscription)
+            },
+            .edit {
+                viewModel.editingSubscription = subscription
+            },
+            .delete {
+                showingActionSheet = true
             }
-            
-            Button("删除订阅", role: .destructive) {
-                if let index = viewModel.subscriptions.firstIndex(where: { $0.id == subscription.id }) {
-                    viewModel.deleteSubscriptions(at: IndexSet([index]))
-                }
-            }
-            
-            Button("取消", role: .cancel) {}
-        } message: {
-            Text("选择要执行的操作")
-        }
-        .onChange(of: isLongPressing) { _, newValue in
-            if newValue {
-                // 长按开始时的触觉反馈已在修饰器中处理
-            }
-        }
+        ]
+    }
+    
+    private var subscriptionDetailSheet: some View {
+        SubDetailView(subscription: subscription, viewModel: viewModel)
+    }
+    
+    private var subscriptionActionSheet: ActionSheet {
+        ActionSheet(
+            title: Text("订阅操作"),
+            message: Text("选择要执行的操作"),
+            buttons: [
+                .default(Text("测试连接")) {
+                    viewModel.testSubscription(subscription)
+                },
+                .default(Text("编辑订阅")) {
+                    viewModel.editingSubscription = subscription
+                },
+                .default(Text("复制链接")) {
+                    UIPasteboard.general.string = subscription.url ?? subscription.content ?? ""
+                },
+                .default(Text(subscription.isEnabled ? "禁用订阅" : "启用订阅")) {
+                    viewModel.toggleSubscriptionStatus(subscription)
+                },
+                .destructive(Text("删除订阅")) {
+                    if let index = viewModel.subscriptions.firstIndex(where: { $0.id == subscription.id }) {
+                        viewModel.deleteSubscriptions(at: IndexSet([index]))
+                    }
+                },
+                .cancel()
+            ]
+        )
     }
 }
 
@@ -387,6 +427,7 @@ struct DetailRowView: View {
     }
 }
 
+#if canImport(UIKit)
 // MARK: - 文档选择器
 struct DocumentPicker: UIViewControllerRepresentable {
     let onPicked: (URL) -> Void
@@ -416,3 +457,4 @@ struct DocumentPicker: UIViewControllerRepresentable {
         }
     }
 }
+#endif

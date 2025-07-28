@@ -1,5 +1,8 @@
 import SwiftUI
 import Combine
+#if canImport(UIKit)
+import UIKit
+#endif
 
 // MARK: - 通知类型
 enum NotificationType {
@@ -144,13 +147,14 @@ class NotificationManager: ObservableObject {
         }
     }
     
-    private func removeNotification(_ notification: AppNotification) {
+    func removeNotification(_ notification: AppNotification) {
         withAnimation(.easeOut(duration: 0.3)) {
             notifications.removeAll { $0.id == notification.id }
         }
     }
     
     private func addHapticFeedback(for type: NotificationType) {
+        #if canImport(UIKit)
         switch type {
         case .success:
             let impact = UINotificationFeedbackGenerator()
@@ -165,6 +169,7 @@ class NotificationManager: ObservableObject {
             let impact = UIImpactFeedbackGenerator(style: .light)
             impact.impactOccurred()
         }
+        #endif
     }
     
     func clearAll() {
@@ -191,10 +196,15 @@ struct NotificationContainerView: View {
             }
         }
         .padding(.horizontal)
+        #if canImport(UIKit)
         .padding(.top, getSafeAreaInsets().top + 8)
+        #else
+        .padding(.top, getSafeAreaInsets() + 8)
+        #endif
         .animation(.spring(response: 0.5, dampingFraction: 0.8), value: notificationManager.notifications)
     }
     
+    #if canImport(UIKit)
     private func getSafeAreaInsets() -> UIEdgeInsets {
         guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
               let window = windowScene.windows.first else {
@@ -202,6 +212,11 @@ struct NotificationContainerView: View {
         }
         return window.safeAreaInsets
     }
+    #else
+    private func getSafeAreaInsets() -> CGFloat {
+        return 0
+    }
+    #endif
 }
 
 // MARK: - 单个通知视图
@@ -263,14 +278,18 @@ struct NotificationItemView: View {
         .gesture(
             DragGesture()
                 .onChanged { value in
-                    if value.translation.x > 0 {
-                        dragOffset = value.translation.x
+                    if value.translation.width > 0 {
+                        dragOffset = value.translation.width
                     }
                 }
                 .onEnded { value in
-                    if value.translation.x > 100 {
+                    if value.translation.width > 100 {
                         withAnimation(.easeOut(duration: 0.3)) {
+                            #if canImport(UIKit)
                             dragOffset = UIScreen.main.bounds.width
+                            #else
+                            dragOffset = 400  // Default width for macOS
+                            #endif
                         }
                         DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
                             onDismiss()

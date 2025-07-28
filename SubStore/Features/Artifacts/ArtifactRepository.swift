@@ -1,13 +1,85 @@
 import Foundation
 import Combine
+import Alamofire
+
+// MARK: - Core Data Service Protocol (placeholder)
+protocol CoreDataServiceProtocol {
+    func fetchArtifacts() -> [Artifact]
+    func fetchArtifact(by id: String) -> Artifact?
+    func saveArtifacts(_ artifacts: [Artifact])
+    func saveArtifact(_ artifact: Artifact)
+    func deleteArtifact(by id: String)
+}
+
+// MARK: - Core Data Service Implementation (placeholder)
+class CoreDataService: CoreDataServiceProtocol {
+    func fetchArtifacts() -> [Artifact] { return [] }
+    func fetchArtifact(by id: String) -> Artifact? { return nil }
+    func saveArtifacts(_ artifacts: [Artifact]) { }
+    func saveArtifact(_ artifact: Artifact) { }
+    func deleteArtifact(by id: String) { }
+}
+
+// MARK: - API Request Extensions
+extension APIRequest {
+    static func getArtifacts() -> APIRequest {
+        return APIRequest(method: .get, path: "/api/artifacts")
+    }
+    
+    static func getArtifact(_ id: String) -> APIRequest {
+        return APIRequest(method: .get, path: "/api/artifacts/\(id)")
+    }
+    
+    static func createArtifact(_ artifact: Artifact) -> APIRequest {
+        let parameters = try? artifact.toDictionary()
+        return APIRequest(method: .post, path: "/api/artifacts", parameters: parameters, encoding: JSONEncoding.default)
+    }
+    
+    static func updateArtifact(_ artifact: Artifact) -> APIRequest {
+        let parameters = try? artifact.toDictionary()
+        return APIRequest(method: .put, path: "/api/artifacts/\(artifact.id)", parameters: parameters, encoding: JSONEncoding.default)
+    }
+    
+    static func deleteArtifact(_ id: String) -> APIRequest {
+        return APIRequest(method: .delete, path: "/api/artifacts/\(id)")
+    }
+    
+    static func syncArtifact(_ artifact: Artifact, _ provider: SyncProvider) -> APIRequest {
+        let parameters: [String: Any] = [
+            "artifact_id": artifact.id,
+            "provider": provider.rawValue
+        ]
+        return APIRequest(method: .post, path: "/api/artifacts/\(artifact.id)/sync", parameters: parameters, encoding: JSONEncoding.default)
+    }
+    
+    static func fetchFromSync(_ config: SyncConfig) -> APIRequest {
+        let parameters = try? config.toDictionary()
+        return APIRequest(method: .post, path: "/api/sync/fetch", parameters: parameters, encoding: JSONEncoding.default)
+    }
+    
+    static func testArtifact(_ artifact: Artifact) -> APIRequest {
+        let parameters = try? artifact.toDictionary()
+        return APIRequest(method: .post, path: "/api/artifacts/\(artifact.id)/test", parameters: parameters, encoding: JSONEncoding.default)
+    }
+    
+    static func validateArtifactContent(_ content: String, _ type: ArtifactType) -> APIRequest {
+        let parameters: [String: Any] = [
+            "content": content,
+            "type": type.rawValue
+        ]
+        return APIRequest(method: .post, path: "/api/artifacts/validate", parameters: parameters, encoding: JSONEncoding.default)
+    }
+}
 
 // MARK: - Artifact Repository Implementation
 class ArtifactRepository: ArtifactRepositoryProtocol {
+    typealias Entity = Artifact
+    
     private let networkService: NetworkServiceProtocol
-    private let coreDataService: CoreDataServiceProtocol
+    private let coreDataService: any CoreDataServiceProtocol
     
     init(networkService: NetworkServiceProtocol = NetworkService(), 
-         coreDataService: CoreDataServiceProtocol = CoreDataService()) {
+         coreDataService: any CoreDataServiceProtocol = CoreDataService()) {
         self.networkService = networkService
         self.coreDataService = coreDataService
     }
@@ -17,18 +89,16 @@ class ArtifactRepository: ArtifactRepositoryProtocol {
         let localArtifacts = coreDataService.fetchArtifacts()
         
         // 然后从网络同步
-        return networkService.request(.getArtifacts)
-            .catch { [weak self] error -> AnyPublisher<[Artifact], Error> in
-                Logger.shared.warning("Failed to fetch artifacts from network: \(error)")
-                // 网络失败时返回本地数据
-                return Just(localArtifacts)
-                    .setFailureType(to: Error.self)
-                    .eraseToAnyPublisher()
-            }
+        return networkService.request(.getArtifacts(), responseType: [Artifact].self)
+            .mapError { $0 as Error }
             .map { [weak self] networkArtifacts in
-                // 保存到本地
                 self?.coreDataService.saveArtifacts(networkArtifacts)
                 return networkArtifacts
+            }
+            .catch { _ in
+                // 网络请求失败时返回本地数据
+                Just(localArtifacts)
+                    .setFailureType(to: Error.self)
             }
             .eraseToAnyPublisher()
     }
@@ -42,7 +112,8 @@ class ArtifactRepository: ArtifactRepositoryProtocol {
         }
         
         // 本地没有则从网络获取
-        return networkService.request(.getArtifact(id))
+        return networkService.request(.getArtifact(id), responseType: Artifact.self)
+            .mapError { $0 as Error }
             .map { [weak self] artifact in
                 self?.coreDataService.saveArtifact(artifact)
                 return artifact
@@ -50,8 +121,14 @@ class ArtifactRepository: ArtifactRepositoryProtocol {
             .eraseToAnyPublisher()
     }
     
+    // Required by BaseRepositoryProtocol
+    func getById(_ id: String) -> AnyPublisher<Artifact?, Error> {
+        return getByID(id)
+    }
+    
     func create(_ artifact: Artifact) -> AnyPublisher<Artifact, Error> {
-        return networkService.request(.createArtifact(artifact))
+        return networkService.request(.createArtifact(artifact), responseType: Artifact.self)
+            .mapError { $0 as Error }
             .map { [weak self] createdArtifact in
                 self?.coreDataService.saveArtifact(createdArtifact)
                 return createdArtifact
@@ -60,7 +137,8 @@ class ArtifactRepository: ArtifactRepositoryProtocol {
     }
     
     func update(_ artifact: Artifact) -> AnyPublisher<Artifact, Error> {
-        return networkService.request(.updateArtifact(artifact))
+        return networkService.request(.updateArtifact(artifact), responseType: Artifact.self)
+            .mapError { $0 as Error }
             .map { [weak self] updatedArtifact in
                 self?.coreDataService.saveArtifact(updatedArtifact)
                 return updatedArtifact
@@ -69,7 +147,8 @@ class ArtifactRepository: ArtifactRepositoryProtocol {
     }
     
     func delete(_ id: String) -> AnyPublisher<Bool, Error> {
-        return networkService.request(.deleteArtifact(id))
+        return networkService.request(.deleteArtifact(id), responseType: Bool.self)
+            .mapError { $0 as Error }
             .map { [weak self] success in
                 if success {
                     self?.coreDataService.deleteArtifact(by: id)
@@ -80,7 +159,8 @@ class ArtifactRepository: ArtifactRepositoryProtocol {
     }
     
     func sync(_ artifact: Artifact, to provider: SyncProvider) -> AnyPublisher<SyncResult, Error> {
-        return networkService.request(.syncArtifact(artifact, provider))
+        return networkService.request(.syncArtifact(artifact, provider), responseType: SyncResult.self)
+            .mapError { $0 as Error }
             .map { syncResult in
                 Logger.shared.info("Synced artifact \(artifact.name) to \(provider)")
                 return syncResult
@@ -89,7 +169,8 @@ class ArtifactRepository: ArtifactRepositoryProtocol {
     }
     
     func fetchFromSync(_ syncConfig: SyncConfig) -> AnyPublisher<[Artifact], Error> {
-        return networkService.request(.fetchFromSync(syncConfig))
+        return networkService.request(.fetchFromSync(syncConfig), responseType: [Artifact].self)
+            .mapError { $0 as Error }
             .map { [weak self] artifacts in
                 // 保存同步获取的规则
                 self?.coreDataService.saveArtifacts(artifacts)
@@ -99,21 +180,23 @@ class ArtifactRepository: ArtifactRepositoryProtocol {
     }
     
     func testArtifact(_ artifact: Artifact) -> AnyPublisher<ArtifactTestResult, Error> {
-        return networkService.request(.testArtifact(artifact))
+        return networkService.request(.testArtifact(artifact), responseType: ArtifactTestResult.self)
+            .mapError { $0 as Error }
             .eraseToAnyPublisher()
     }
     
     func validateContent(_ content: String, type: ArtifactType) -> AnyPublisher<ValidationResult, Error> {
-        return networkService.request(.validateArtifactContent(content, type))
+        return networkService.request(.validateArtifactContent(content, type), responseType: ValidationResult.self)
+            .mapError { $0 as Error }
             .eraseToAnyPublisher()
     }
 }
 
 // MARK: - Artifact Use Cases
 class GetArtifactsUseCaseImpl: GetArtifactsUseCase {
-    private let repository: ArtifactRepositoryProtocol
+    private let repository: any ArtifactRepositoryProtocol
     
-    init(repository: ArtifactRepositoryProtocol) {
+    init(repository: any ArtifactRepositoryProtocol) {
         self.repository = repository
     }
     
@@ -123,9 +206,9 @@ class GetArtifactsUseCaseImpl: GetArtifactsUseCase {
 }
 
 class CreateArtifactUseCaseImpl: CreateArtifactUseCase {
-    private let repository: ArtifactRepositoryProtocol
+    private let repository: any ArtifactRepositoryProtocol
     
-    init(repository: ArtifactRepositoryProtocol) {
+    init(repository: any ArtifactRepositoryProtocol) {
         self.repository = repository
     }
     
@@ -135,9 +218,9 @@ class CreateArtifactUseCaseImpl: CreateArtifactUseCase {
 }
 
 class UpdateArtifactUseCaseImpl: UpdateArtifactUseCase {
-    private let repository: ArtifactRepositoryProtocol
+    private let repository: any ArtifactRepositoryProtocol
     
-    init(repository: ArtifactRepositoryProtocol) {
+    init(repository: any ArtifactRepositoryProtocol) {
         self.repository = repository
     }
     
@@ -147,9 +230,9 @@ class UpdateArtifactUseCaseImpl: UpdateArtifactUseCase {
 }
 
 class DeleteArtifactUseCaseImpl: DeleteArtifactUseCase {
-    private let repository: ArtifactRepositoryProtocol
+    private let repository: any ArtifactRepositoryProtocol
     
-    init(repository: ArtifactRepositoryProtocol) {
+    init(repository: any ArtifactRepositoryProtocol) {
         self.repository = repository
     }
     
@@ -159,9 +242,9 @@ class DeleteArtifactUseCaseImpl: DeleteArtifactUseCase {
 }
 
 class SyncArtifactUseCaseImpl: SyncArtifactUseCase {
-    private let repository: ArtifactRepositoryProtocol
+    private let repository: any ArtifactRepositoryProtocol
     
-    init(repository: ArtifactRepositoryProtocol) {
+    init(repository: any ArtifactRepositoryProtocol) {
         self.repository = repository
     }
     
@@ -371,5 +454,22 @@ struct ValidationWarning: Codable, Identifiable {
         self.column = column
         self.message = message
         self.suggestion = suggestion
+    }
+}
+
+// MARK: - Codable Extensions
+extension Artifact {
+    func toDictionary() throws -> [String: Any] {
+        let data = try JSONEncoder().encode(self)
+        let json = try JSONSerialization.jsonObject(with: data, options: [])
+        return json as? [String: Any] ?? [:]
+    }
+}
+
+extension SyncConfig {
+    func toDictionary() throws -> [String: Any] {
+        let data = try JSONEncoder().encode(self)
+        let json = try JSONSerialization.jsonObject(with: data, options: [])
+        return json as? [String: Any] ?? [:]
     }
 }

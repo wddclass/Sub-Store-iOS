@@ -1,4 +1,7 @@
 import SwiftUI
+#if canImport(UIKit)
+import UIKit
+#endif
 
 // MARK: - 加载指示器
 struct LoadingView: View {
@@ -21,7 +24,11 @@ struct LoadingView: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Color(.systemBackground))
+        #if canImport(UIKit)
+        .background(Color(UIColor.systemBackground))
+        #else
+        .background(Color(.white))
+        #endif
     }
 }
 
@@ -59,7 +66,11 @@ struct ErrorView: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Color(.systemBackground))
+        #if canImport(UIKit)
+        .background(Color(UIColor.systemBackground))
+        #else
+        .background(Color(.white))
+        #endif
     }
 }
 
@@ -109,7 +120,11 @@ struct EmptyStateView: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Color(.systemBackground))
+        #if canImport(UIKit)
+        .background(Color(UIColor.systemBackground))
+        #else
+        .background(Color(.white))
+        #endif
     }
 }
 
@@ -124,7 +139,11 @@ struct CardView<Content: View>: View {
     var body: some View {
         content
             .padding()
-            .background(Color(.systemBackground))
+            #if canImport(UIKit)
+            .background(Color(UIColor.systemBackground))
+            #else
+            .background(Color(.white))
+            #endif
             .cornerRadius(AppConstants.UI.cornerRadius)
             .shadow(radius: AppConstants.UI.shadowRadius)
     }
@@ -302,7 +321,7 @@ struct SubscriptionIconView: View {
     }
     
     private var defaultIcon: some View {
-        Image(systemName: subscription.type == .single ? "link" : "link.badge.plus")
+        Image(systemName: subscription.source == .remote ? "link" : "link.badge.plus")
             .font(.system(size: size * 0.6))
             .foregroundColor(.accentColor)
             .frame(width: size, height: size)
@@ -323,9 +342,13 @@ struct TagView: View {
                 .font(.caption)
                 .padding(.horizontal, AppConstants.UI.Spacing.small)
                 .padding(.vertical, AppConstants.UI.Spacing.tiny)
-                .background(
-                    isSelected ? Color.accentColor : Color(.systemGray5)
-                )
+                .background({
+                    #if canImport(UIKit)
+                    return isSelected ? Color.accentColor : Color(UIColor.systemGray5)
+                    #else
+                    return isSelected ? Color.accentColor : Color.gray.opacity(0.3)
+                    #endif
+                }())
                 .foregroundColor(
                     isSelected ? .white : .primary
                 )
@@ -362,7 +385,11 @@ struct SearchBarView: View {
         }
         .padding(.horizontal)
         .padding(.vertical, AppConstants.UI.Spacing.small)
-        .background(Color(.systemGray6))
+        #if canImport(UIKit)
+        .background(Color(UIColor.systemGray6))
+        #else
+        .background(Color.gray.opacity(0.2))
+        #endif
         .cornerRadius(AppConstants.UI.cornerRadius)
     }
 }

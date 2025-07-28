@@ -2,6 +2,7 @@ import Foundation
 import Combine
 
 // MARK: - Base ViewModel Protocol
+@MainActor
 protocol BaseViewModelProtocol: ObservableObject {
     var isLoading: Bool { get set }
     var errorMessage: String? { get set }
@@ -17,7 +18,7 @@ class BaseViewModel: BaseViewModelProtocol {
     @Published var isLoading: Bool = false
     @Published var errorMessage: String? = nil
     
-    protected var cancellables = Set<AnyCancellable>()
+    internal var cancellables = Set<AnyCancellable>()
     
     // MARK: - Error Handling
     func handleError(_ error: Error) {

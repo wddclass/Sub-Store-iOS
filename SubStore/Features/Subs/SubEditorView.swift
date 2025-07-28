@@ -71,7 +71,6 @@ struct SubEditorView: View {
                         saveSubscription()
                     }
                     .disabled(!isValid)
-                    .fontWeight(.semibold)
                 }
             }
             .onAppear {
@@ -136,8 +135,7 @@ struct SubEditorView: View {
                 .textFieldStyle(PlainTextFieldStyle())
             
             // 备注
-            TextField("备注", text: $form.remark, axis: .vertical)
-                .lineLimit(1...3)
+            TextField("备注", text: $form.remark)
                 .textFieldStyle(PlainTextFieldStyle())
             
             // 标签
@@ -187,8 +185,7 @@ struct SubEditorView: View {
                         .font(.subheadline)
                         .fontWeight(.medium)
                     
-                    TextField("请输入订阅链接", text: $form.url, axis: .vertical)
-                        .lineLimit(2...4)
+                    TextField("请输入订阅链接", text: $form.url)
                         .textFieldStyle(RoundedBorderTextFieldStyle())
                         .keyboardType(.URL)
                         .autocapitalization(.none)
@@ -311,11 +308,17 @@ struct SubEditorView: View {
                 DetailRowView(title: "更新时间", value: subscription.updatedAt.detailFormatted)
                 
                 if let flow = subscription.flow {
-                    DetailRowView(title: "已用流量", value: ByteFormatter.formatted(bytes: flow.used))
-                    DetailRowView(title: "总流量", value: ByteFormatter.formatted(bytes: flow.total))
-                    DetailRowView(title: "剩余流量", value: ByteFormatter.formatted(bytes: flow.remaining))
-                    if let expireDate = flow.expireDate {
-                        DetailRowView(title: "到期时间", value: expireDate.detailFormatted)
+                    if let used = flow.used {
+                        DetailRowView(title: "已用流量", value: ByteFormatter.formatted(bytes: used))
+                    }
+                    if let total = flow.total {
+                        DetailRowView(title: "总流量", value: ByteFormatter.formatted(bytes: total))
+                    }
+                    if let remaining = flow.remaining {
+                        DetailRowView(title: "剩余流量", value: ByteFormatter.formatted(bytes: remaining))
+                    }
+                    if let resetDate = flow.resetDate {
+                        DetailRowView(title: "重置时间", value: resetDate.detailFormatted)
                     }
                 }
             }
@@ -390,7 +393,7 @@ struct SubEditorView: View {
 }
 
 // MARK: - 订阅表单模型
-struct SubscriptionForm {
+struct SubscriptionForm: Equatable {
     var name: String = ""
     var displayName: String = ""
     var url: String = ""

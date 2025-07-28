@@ -4,9 +4,9 @@ import SwiftUI
 
 // MARK: - Subscription Use Cases
 class GetSubscriptionsUseCaseImpl: GetSubscriptionsUseCase {
-    private let repository: SubscriptionRepositoryProtocol
+    private let repository: any SubscriptionRepositoryProtocol
     
-    init(repository: SubscriptionRepositoryProtocol) {
+    init(repository: any SubscriptionRepositoryProtocol) {
         self.repository = repository
     }
     
@@ -16,9 +16,9 @@ class GetSubscriptionsUseCaseImpl: GetSubscriptionsUseCase {
 }
 
 class CreateSubscriptionUseCaseImpl: CreateSubscriptionUseCase {
-    private let repository: SubscriptionRepositoryProtocol
+    private let repository: any SubscriptionRepositoryProtocol
     
-    init(repository: SubscriptionRepositoryProtocol) {
+    init(repository: any SubscriptionRepositoryProtocol) {
         self.repository = repository
     }
     
@@ -28,9 +28,9 @@ class CreateSubscriptionUseCaseImpl: CreateSubscriptionUseCase {
 }
 
 class UpdateSubscriptionUseCaseImpl: UpdateSubscriptionUseCase {
-    private let repository: SubscriptionRepositoryProtocol
+    private let repository: any SubscriptionRepositoryProtocol
     
-    init(repository: SubscriptionRepositoryProtocol) {
+    init(repository: any SubscriptionRepositoryProtocol) {
         self.repository = repository
     }
     
@@ -40,9 +40,9 @@ class UpdateSubscriptionUseCaseImpl: UpdateSubscriptionUseCase {
 }
 
 class DeleteSubscriptionUseCaseImpl: DeleteSubscriptionUseCase {
-    private let repository: SubscriptionRepositoryProtocol
+    private let repository: any SubscriptionRepositoryProtocol
     
-    init(repository: SubscriptionRepositoryProtocol) {
+    init(repository: any SubscriptionRepositoryProtocol) {
         self.repository = repository
     }
     
@@ -82,7 +82,7 @@ class SubsViewModel: BaseViewModel {
     private let createSubscriptionUseCase: CreateSubscriptionUseCase
     private let updateSubscriptionUseCase: UpdateSubscriptionUseCase
     private let deleteSubscriptionUseCase: DeleteSubscriptionUseCase
-    private let repository: SubscriptionRepositoryProtocol
+    private let repository: any SubscriptionRepositoryProtocol
     
     private var flowUpdateTimer: Timer?
     
@@ -92,7 +92,7 @@ class SubsViewModel: BaseViewModel {
         createSubscriptionUseCase: CreateSubscriptionUseCase? = nil,
         updateSubscriptionUseCase: UpdateSubscriptionUseCase? = nil,
         deleteSubscriptionUseCase: DeleteSubscriptionUseCase? = nil,
-        repository: SubscriptionRepositoryProtocol? = nil
+        repository: (any SubscriptionRepositoryProtocol)? = nil
     ) {
         let defaultRepository = repository ?? SubscriptionRepository()
         
@@ -116,10 +116,15 @@ class SubsViewModel: BaseViewModel {
     private func setupObservers() {
         // 监听搜索文本和筛选条件变化
         Publishers.CombineLatest($subscriptions, $searchText)
-            .combineLatest($selectedTag, $selectedTypes, $selectedTags, $enabledOnly, $hasFlowInfo)
+            .combineLatest($selectedTag)
+            .combineLatest($selectedTypes)
+            .combineLatest($selectedTags)
+            .combineLatest($enabledOnly)
+            .combineLatest($hasFlowInfo)
             .debounce(for: .milliseconds(300), scheduler: RunLoop.main)
-            .sink { [weak self] args, selectedTag, selectedTypes, selectedTags, enabledOnly, hasFlowInfo in
-                let (subscriptions, searchText) = args
+            .sink { [weak self] value in
+                let (((((subscriptionsAndText, selectedTag), selectedTypes), selectedTags), enabledOnly), hasFlowInfo) = value
+                let (subscriptions, searchText) = subscriptionsAndText
                 self?.updateFilteredSubscriptions(
                     subscriptions: subscriptions,
                     searchText: searchText,
@@ -598,7 +603,7 @@ class SubsViewModel: BaseViewModel {
         if !searchText.isEmpty {
             filtered = filtered.filter { subscription in
                 subscription.name.localizedCaseInsensitiveContains(searchText) ||
-                subscription.url.localizedCaseInsensitiveContains(searchText) ||
+                (subscription.url?.localizedCaseInsensitiveContains(searchText) ?? false) ||
                 subscription.tags.joined().localizedCaseInsensitiveContains(searchText) ||
                 (subscription.platform?.localizedCaseInsensitiveContains(searchText) ?? false)
             }

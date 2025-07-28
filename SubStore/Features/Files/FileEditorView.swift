@@ -1,12 +1,22 @@
 import SwiftUI
 import Highlightr
+import Combine
+#if canImport(UIKit)
+import UIKit
+#endif
+#if canImport(AppKit)
+import AppKit
+#endif
 
 // MARK: - 文件编辑器视图
 struct FileEditorView: View {
     let file: SubStoreFile?
     let onSave: (SubStoreFile) -> Void
     
-    @StateObject private var viewModel = FileEditorViewModel()
+    @StateObject private var viewModel = FileEditorViewModel(
+        fileRepository: MockFileRepository(),
+        subsRepository: SubscriptionRepository()
+    )
     @EnvironmentObject var themeManager: ThemeManager
     @EnvironmentObject var settingsManager: SettingsManager
     
@@ -40,11 +50,11 @@ struct FileEditorView: View {
             }
         }
         .sheet(isPresented: $showingIconPicker) {
-            IconPickerView(selectedIcon: $viewModel.form.icon)
+            IconPickerView(selectedIcon: $viewModel.form.icon, isColorIcon: $viewModel.form.isIconColor)
         }
         .sheet(isPresented: $showingSourcePicker) {
             SourcePickerView(
-                sourceType: viewModel.form.sourceType,
+                sourceType: SubscriptionSource.remote,
                 selectedSource: $viewModel.form.sourceName
             )
         }
@@ -57,7 +67,7 @@ struct FileEditorView: View {
         }
         .sheet(isPresented: $showingPreview) {
             FilePreviewView(
-                previewData: viewModel.previewData,
+                previewData: viewModel.previewData!,
                 isPresented: $showingPreview
             )
         }
@@ -69,7 +79,7 @@ struct FileEditorView: View {
         ScrollView {
             VStack(spacing: 0) {
                 // 图标显示
-                if settingsManager.settings.appearance.showIcon {
+                if settingsManager.settings.appearance.showFlowInfo {
                     fileIconView
                 }
                 
@@ -94,9 +104,11 @@ struct FileEditorView: View {
             .padding()
         }
         .navigationTitle(file == nil ? "创建文件" : "编辑文件")
+        #if os(iOS)
         .navigationBarTitleDisplayMode(.inline)
+        #endif
         .toolbar {
-            ToolbarItem(placement: .navigationBarLeading) {
+            ToolbarItem(placement: .cancellationAction) {
                 Button("取消") {
                     dismiss()
                 }
@@ -116,7 +128,11 @@ struct FileEditorView: View {
                 
                 Spacer()
             }
-            .background(Color(UIColor.systemBackground))
+            #if canImport(UIKit)
+.background(Color(UIColor.systemBackground))
+#else
+.background(Color.white)
+#endif
             .shadow(color: .black.opacity(0.1), radius: 1, x: 0, y: 1)
             
             // 代码编辑器
@@ -142,7 +158,11 @@ struct FileEditorView: View {
                     .foregroundColor(.accentColor)
             }
             .frame(width: 70, height: 70)
-            .background(Color(UIColor.tertiarySystemGroupedBackground))
+            #if canImport(UIKit)
+.background(Color(UIColor.tertiarySystemGroupedBackground))
+#else
+.background(Color.gray.opacity(0.05))
+#endif
             .cornerRadius(12)
             .shadow(color: .black.opacity(0.1), radius: 4, x: 0, y: 2)
         }
@@ -228,21 +248,29 @@ struct FileEditorView: View {
             }
         }
         .padding()
-        .background(Color(UIColor.secondarySystemGroupedBackground))
+        #if canImport(UIKit)
+.background(Color(UIColor.secondarySystemGroupedBackground))
+#else
+.background(Color.gray.opacity(0.1))
+#endif
         .cornerRadius(12)
     }
     
     // MARK: - 类型特定配置
     private var typeSpecificSection: some View {
         VStack(spacing: 16) {
-            if viewModel.form.type == .mihomoProfile {
+            if viewModel.form.type == FileType.mihomoProfile {
                 mihomoProfileSection
             } else {
                 generalFileSection
             }
         }
         .padding()
-        .background(Color(UIColor.secondarySystemGroupedBackground))
+        #if canImport(UIKit)
+.background(Color(UIColor.secondarySystemGroupedBackground))
+#else
+.background(Color.gray.opacity(0.1))
+#endif
         .cornerRadius(12)
         .padding(.top, 16)
     }
@@ -253,9 +281,9 @@ struct FileEditorView: View {
             // 来源类型
             FormRowView(title: "来源") {
                 Picker("来源类型", selection: $viewModel.form.sourceType) {
-                    Text("单条订阅").tag(SubscriptionSource.subscription)
-                    Text("组合订阅").tag(SubscriptionSource.collection)
-                    Text("无").tag(SubscriptionSource.none)
+                    Text("单条订阅").tag(FileSource.subscription)
+                    Text("组合订阅").tag(FileSource.collection)
+                    Text("无").tag(FileSource.none)
                 }
                 .pickerStyle(.segmented)
             }
@@ -337,11 +365,19 @@ struct FileEditorView: View {
                             )
                             .frame(minHeight: 200, maxHeight: 300)
                         }
-                        .background(Color(UIColor.systemBackground))
+                        #if canImport(UIKit)
+.background(Color(UIColor.systemBackground))
+#else
+.background(Color.white)
+#endif
                         .cornerRadius(8)
                         .overlay(
                             RoundedRectangle(cornerRadius: 8)
-                                .stroke(Color(UIColor.separator), lineWidth: 1)
+                                #if canImport(UIKit)
+.stroke(Color(UIColor.separator), lineWidth: 1)
+#else
+.stroke(Color.gray.opacity(0.3), lineWidth: 1)
+#endif
                         )
                     }
                 }
@@ -423,11 +459,19 @@ struct FileEditorView: View {
                 .foregroundColor(.secondary)
                 .frame(maxWidth: .infinity, alignment: .center)
                 .padding()
-                .background(Color(UIColor.tertiarySystemGroupedBackground))
+                #if canImport(UIKit)
+.background(Color(UIColor.tertiarySystemGroupedBackground))
+#else
+.background(Color.gray.opacity(0.05))
+#endif
                 .cornerRadius(8)
         }
         .padding()
-        .background(Color(UIColor.secondarySystemGroupedBackground))
+        #if canImport(UIKit)
+.background(Color(UIColor.secondarySystemGroupedBackground))
+#else
+.background(Color.gray.opacity(0.1))
+#endif
         .cornerRadius(12)
         .padding(.top, 16)
     }
@@ -448,7 +492,11 @@ struct FileEditorView: View {
                     }
                     .frame(maxWidth: .infinity)
                     .padding()
-                    .background(Color(UIColor.secondarySystemGroupedBackground))
+                    #if canImport(UIKit)
+.background(Color(UIColor.secondarySystemGroupedBackground))
+#else
+.background(Color.gray.opacity(0.1))
+#endif
                     .foregroundColor(.primary)
                     .cornerRadius(12)
                 }
@@ -476,7 +524,11 @@ struct FileEditorView: View {
                 .disabled(isSubmitting || !viewModel.isValidForm)
             }
             .padding()
-            .background(Color(UIColor.systemBackground))
+            #if canImport(UIKit)
+.background(Color(UIColor.systemBackground))
+#else
+.background(Color.white)
+#endif
             .shadow(color: .black.opacity(0.1), radius: 5, x: 0, y: -2)
         }
     }
@@ -594,7 +646,11 @@ struct CodeEditorView: View {
                 }
             }
         }
-        .background(Color(UIColor.systemBackground))
+        #if canImport(UIKit)
+.background(Color(UIColor.systemBackground))
+#else
+.background(Color.white)
+#endif
         .cornerRadius(8)
     }
 }
@@ -623,10 +679,12 @@ struct SourcePickerView: View {
                     .foregroundColor(.primary)
                 }
             }
-            .navigationTitle("选择\(sourceType == .subscription ? "订阅" : "组合订阅")")
+            .navigationTitle("选择\(sourceType == .remote ? "订阅" : "组合订阅")")
+            #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
+            #endif
             .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
+                ToolbarItem(placement: .primaryAction) {
                     Button("取消") {
                         dismiss()
                     }

@@ -89,7 +89,11 @@ struct BatchOperationView: View {
             }
         }
         .padding()
+        #if canImport(UIKit)
         .background(Color(.systemGray6))
+        #else
+        .background(Color.gray.opacity(0.1))
+        #endif
         .cornerRadius(AppConstants.UI.cornerRadius)
         .disabled(selectedSubscriptions.isEmpty)
     }
@@ -115,7 +119,11 @@ struct BatchOperationButton: View {
             }
             .frame(maxWidth: .infinity)
             .padding(.vertical, AppConstants.UI.Spacing.small)
+            #if canImport(UIKit)
             .background(Color(.systemBackground))
+            #else
+            .background(Color.white)
+            #endif
             .cornerRadius(AppConstants.UI.cornerRadius / 2)
         }
         .buttonStyle(PlainButtonStyle())
@@ -304,7 +312,11 @@ struct SubscriptionStatsView: View {
             }
         }
         .padding()
+        #if canImport(UIKit)
         .background(Color(.systemGray6))
+        #else
+        .background(Color.gray.opacity(0.1))
+        #endif
         .cornerRadius(AppConstants.UI.cornerRadius)
     }
 }
@@ -402,7 +414,11 @@ struct QuickActionView: View {
             )
         }
         .padding()
+        #if canImport(UIKit)
         .background(Color(.systemGray6))
+        #else
+        .background(Color.gray.opacity(0.1))
+        #endif
         .cornerRadius(AppConstants.UI.cornerRadius)
     }
 }

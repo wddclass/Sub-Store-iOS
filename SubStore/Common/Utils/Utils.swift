@@ -1,6 +1,9 @@
 import Foundation
 import SwiftUI
 import CryptoKit
+#if canImport(UIKit)
+import UIKit
+#endif
 
 // MARK: - 日志管理器
 class Logger {
@@ -123,13 +126,15 @@ struct ValidationUtils {
 import Network
 
 class NetworkMonitor: ObservableObject {
+    static let shared = NetworkMonitor()
+    
     private let monitor = NWPathMonitor()
     private let queue = DispatchQueue(label: "NetworkMonitor")
     
     @Published var isConnected = true
     @Published var connectionType: NWInterface.InterfaceType?
     
-    init() {
+    private init() {
         startMonitoring()
     }
     
@@ -154,6 +159,7 @@ enum AppError: LocalizedError {
     case dataParsingError(String)
     case validationError(String)
     case storageError(String)
+    case syncError(String)
     case unknownError(String)
     
     var errorDescription: String? {
@@ -166,6 +172,8 @@ enum AppError: LocalizedError {
             return "验证错误: \(message)"
         case .storageError(let message):
             return "存储错误: \(message)"
+        case .syncError(let message):
+            return "同步错误: \(message)"
         case .unknownError(let message):
             return "未知错误: \(message)"
         }
@@ -209,7 +217,11 @@ struct DeviceUtils {
     
     /// 获取iOS版本
     static var iOSVersion: String {
+        #if canImport(UIKit)
         return UIDevice.current.systemVersion
+        #else
+        return ProcessInfo.processInfo.operatingSystemVersionString
+        #endif
     }
     
     /// 获取应用版本
@@ -219,11 +231,19 @@ struct DeviceUtils {
     
     /// 检查是否为iPad
     static var isPad: Bool {
+        #if canImport(UIKit)
         return UIDevice.current.userInterfaceIdiom == .pad
+        #else
+        return false
+        #endif
     }
     
     /// 检查是否为iPhone
     static var isPhone: Bool {
+        #if canImport(UIKit)
         return UIDevice.current.userInterfaceIdiom == .phone
+        #else
+        return false
+        #endif
     }
 }

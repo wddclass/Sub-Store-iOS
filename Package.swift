@@ -7,8 +7,8 @@ let package = Package(
     name: "SubStore",
     defaultLocalization: "zh-Hans",
     platforms: [
-        .iOS(.v15),
-        .macOS(.v12)
+        .iOS(.v17),
+        .macOS(.v14)
     ],
     products: [
         .executable(
@@ -49,7 +49,8 @@ let package = Package(
         ),
         .testTarget(
             name: "SubStoreTests",
-            dependencies: ["SubStore"]
+            dependencies: ["SubStore"],
+            path: "Tests/SubStoreTests"
         ),
     ]
 )

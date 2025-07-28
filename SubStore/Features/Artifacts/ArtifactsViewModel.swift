@@ -31,7 +31,7 @@ class ArtifactsViewModel: BaseViewModel {
     private let updateArtifactUseCase: UpdateArtifactUseCase
     private let deleteArtifactUseCase: DeleteArtifactUseCase
     private let syncArtifactUseCase: SyncArtifactUseCase
-    private let repository: ArtifactRepositoryProtocol
+    private let repository: any ArtifactRepositoryProtocol
     
     private var syncTimer: Timer?
     
@@ -42,7 +42,7 @@ class ArtifactsViewModel: BaseViewModel {
         updateArtifactUseCase: UpdateArtifactUseCase? = nil,
         deleteArtifactUseCase: DeleteArtifactUseCase? = nil,
         syncArtifactUseCase: SyncArtifactUseCase? = nil,
-        repository: ArtifactRepositoryProtocol? = nil
+        repository: (any ArtifactRepositoryProtocol)? = nil
     ) {
         let defaultRepository = repository ?? ArtifactRepository()
         

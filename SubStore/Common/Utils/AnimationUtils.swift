@@ -62,10 +62,10 @@ struct AnimationUtils {
 }
 
 // MARK: - 转场效果
-struct SlideTransition: Transition {
+struct SlideTransition {
     let edge: Edge
     
-    var body: some Transition {
+    var transition: AnyTransition {
         .asymmetric(
             insertion: .move(edge: edge).combined(with: .opacity),
             removal: .move(edge: edge.opposite).combined(with: .opacity)
@@ -189,8 +189,7 @@ struct BouncyNumberView: View {
     
     var body: some View {
         Text("\(displayedNumber)")
-            .contentTransition(.numericText())
-            .onChange(of: number) { _, newValue in
+            .onChange(of: number) { newValue in
                 withAnimation(AnimationUtils.springBouncy) {
                     displayedNumber = newValue
                 }
@@ -206,7 +205,7 @@ struct ShakeEffect: ViewModifier {
     func body(content: Content) -> some View {
         content
             .offset(x: shakeOffset)
-            .onChange(of: trigger) { _, _ in
+            .onChange(of: trigger) { _ in
                 withAnimation(AnimationUtils.errorShake) {
                     shakeOffset = 10
                 }
@@ -232,7 +231,7 @@ struct SuccessEffect: ViewModifier {
     func body(content: Content) -> some View {
         content
             .scaleEffect(scale)
-            .onChange(of: trigger) { _, _ in
+            .onChange(of: trigger) { _ in
                 withAnimation(AnimationUtils.successBounce) {
                     scale = 1.2
                 }
@@ -260,7 +259,7 @@ extension View {
     }
     
     func slideTransition(from edge: Edge) -> some View {
-        transition(SlideTransition(edge: edge))
+        transition(SlideTransition(edge: edge).transition)
     }
 }
 

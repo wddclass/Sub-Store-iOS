@@ -30,7 +30,7 @@ struct FilePreviewView: View {
     @State private var editableContent: String = ""
     
     var body: some View {
-        NavigationStack {
+        NavigationView {
             VStack(spacing: 0) {
                 // URL 信息区域（如果有URL）
                 if let url = previewData.url {
@@ -63,7 +63,6 @@ struct FilePreviewView: View {
                         Button(isEditing ? "完成" : "编辑") {
                             toggleEditMode()
                         }
-                        .fontWeight(.medium)
                     }
                 }
             }
@@ -176,7 +175,7 @@ struct FilePreviewView: View {
     
     // MARK: - 导出界面
     private var exportSheet: some View {
-        NavigationStack {
+        NavigationView {
             VStack(spacing: 24) {
                 VStack(spacing: 16) {
                     Image(systemName: "square.and.arrow.up")
@@ -410,6 +409,6 @@ extension FilePreviewView {
             name: "test-config",
             url: nil
         ),
-        isPresented: .constant(true)
+        isPresented: Binding.constant(true)
     )
 }

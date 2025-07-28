@@ -1,4 +1,7 @@
 import SwiftUI
+#if canImport(UIKit)
+import UIKit
+#endif
 
 // MARK: - 规则详情视图
 struct ArtifactDetailView: View {
@@ -9,7 +12,7 @@ struct ArtifactDetailView: View {
     @State private var showingSyncOptions = false
     
     var body: some View {
-        NavigationStack {
+        NavigationView {
             List {
                 Section("基本信息") {
                     DetailRowView(title: "名称", value: artifact.name)
@@ -158,7 +161,7 @@ struct ArtifactContentView: View {
     @State private var showingShare = false
     
     var body: some View {
-        NavigationStack {
+        NavigationView {
             VStack {
                 // 工具栏
                 HStack {
@@ -169,7 +172,9 @@ struct ArtifactContentView: View {
                     Spacer()
                     
                     Button("复制") {
+                        #if canImport(UIKit)
                         UIPasteboard.general.string = artifact.content
+                        #endif
                     }
                     .foregroundColor(.accentColor)
                     
@@ -334,7 +339,7 @@ struct SyncConfigurationView: View {
     @State private var editingConfig: SyncConfig?
     
     var body: some View {
-        NavigationStack {
+        NavigationView {
             List {
                 Section(header: Text("同步提供商")) {
                     ForEach(syncConfigs) { config in
@@ -477,7 +482,7 @@ struct SyncConfigEditorView: View {
     }
     
     var body: some View {
-        NavigationStack {
+        NavigationView {
             Form {
                 Section("同步服务") {
                     Picker("提供商", selection: $selectedProvider) {
@@ -494,12 +499,16 @@ struct SyncConfigEditorView: View {
                 
                 Section("认证信息") {
                     SecureField("访问令牌", text: $token)
+                        #if canImport(UIKit)
                         .textContentType(.password)
+                        #endif
                     
                     TextField("仓库链接 (可选)", text: $repositoryURL)
+                        #if canImport(UIKit)
                         .keyboardType(.URL)
                         .autocapitalization(.none)
                         .disableAutocorrection(true)
+                        #endif
                 }
                 
                 Section("同步设置") {
@@ -583,6 +592,7 @@ struct SyncConfigEditorView: View {
     }
 }
 
+#if canImport(UIKit)
 // MARK: - 分享视图
 struct ShareSheet: UIViewControllerRepresentable {
     let items: [Any]
@@ -594,3 +604,4 @@ struct ShareSheet: UIViewControllerRepresentable {
     
     func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
 }
+#endif

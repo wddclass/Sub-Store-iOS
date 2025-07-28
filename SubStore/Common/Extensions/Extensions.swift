@@ -1,5 +1,8 @@
 import Foundation
 import SwiftUI
+#if canImport(UIKit)
+import UIKit
+#endif
 
 // MARK: - Bundle Extensions
 extension Bundle {
@@ -21,7 +24,11 @@ extension String {
     /// 验证是否为有效的URL
     var isValidURL: Bool {
         guard let url = URL(string: self) else { return false }
+        #if canImport(UIKit)
         return UIApplication.shared.canOpenURL(url)
+        #else
+        return true  // For macOS, assume all URLs are valid
+        #endif
     }
     
     /// 验证是否为有效的HTTP/HTTPS URL
@@ -97,11 +104,16 @@ extension View {
     /// 添加圆角和阴影
     func cardStyle() -> some View {
         self
-            .background(Color(.systemBackground))
+            #if canImport(UIKit)
+            .background(Color(UIColor.systemBackground))
+            #else
+            .background(Color.white)
+            #endif
             .cornerRadius(AppConstants.UI.cornerRadius)
             .shadow(radius: AppConstants.UI.shadowRadius)
     }
     
+    #if canImport(UIKit)
     /// 触觉反馈
     func hapticFeedback(_ style: UIImpactFeedbackGenerator.FeedbackStyle = .medium) -> some View {
         self.onTapGesture {
@@ -110,6 +122,7 @@ extension View {
             impactFeedback.impactOccurred()
         }
     }
+    #endif
 }
 
 // MARK: - Color Extensions
@@ -128,7 +141,7 @@ extension Color {
         case 8: // ARGB (32-bit)
             (a, r, g, b) = (int >> 24, int >> 16 & 0xFF, int >> 8 & 0xFF, int & 0xFF)
         default:
-            (a, r, g, b) = (1, 1, 1, 0)
+            (a, r, g, b) = (255, 0, 122, 255) // 默认蓝色 #007AFF
         }
         
         self.init(
@@ -142,6 +155,7 @@ extension Color {
     
     /// 转换为十六进制字符串
     func toHex() -> String? {
+        #if canImport(UIKit)
         let uic = UIColor(self)
         guard let components = uic.cgColor.components, components.count >= 3 else {
             return nil
@@ -160,6 +174,10 @@ extension Color {
         } else {
             return String(format: "%02lX%02lX%02lX", lroundf(r * 255), lroundf(g * 255), lroundf(b * 255))
         }
+        #else
+        // For macOS, return a default color hex value
+        return "#007AFF"
+        #endif
     }
 }
 
@@ -195,48 +213,6 @@ extension URL {
     }
 }
 
-// MARK: - FlowInfo Extensions
-extension FlowInfo {
-    /// 格式化使用流量
-    var usedFormatted: String {
-        return ByteFormatter.formatted(bytes: used)
-    }
-    
-    /// 格式化总流量
-    var totalFormatted: String {
-        return isUnlimited ? "无限制" : ByteFormatter.formatted(bytes: total)
-    }
-    
-    /// 格式化剩余流量
-    var remainingFormatted: String {
-        return isUnlimited ? "无限制" : ByteFormatter.formatted(bytes: remaining)
-    }
-    
-    /// 使用百分比
-    var percentage: Double? {
-        guard !isUnlimited && total > 0 else { return nil }
-        return (Double(used) / Double(total)) * 100.0
-    }
-    
-    /// 剩余流量
-    var remaining: Int64 {
-        return isUnlimited ? Int64.max : max(0, total - used)
-    }
-    
-    /// 流量状态
-    var status: FlowStatus {
-        guard !isUnlimited else { return .unlimited }
-        
-        let percentage = self.percentage ?? 0
-        if percentage >= 90 {
-            return .critical
-        } else if percentage >= 70 {
-            return .warning
-        } else {
-            return .normal
-        }
-    }
-}
 
 // MARK: - FlowStatus Enum
 enum FlowStatus {
@@ -276,14 +252,6 @@ struct ByteFormatter {
 
 // MARK: - SubscriptionType Extensions
 extension SubscriptionType {
-    var displayName: String {
-        switch self {
-        case .single:
-            return "单条订阅"
-        case .collection:
-            return "组合订阅"
-        }
-    }
     
     var iconName: String {
         switch self {

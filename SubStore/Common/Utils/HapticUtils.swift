@@ -23,24 +23,22 @@ class HapticManager: ObservableObject {
         UserDefaults.standard.set(isEnabled, forKey: "HapticFeedbackEnabled")
     }
     
+    #if canImport(UIKit)
     // MARK: - 触觉反馈类型
     func impact(_ style: UIImpactFeedbackGenerator.FeedbackStyle) {
-        #if canImport(UIKit)
         guard isEnabled else { return }
         let generator = UIImpactFeedbackGenerator(style: style)
         generator.prepare()
         generator.impactOccurred()
-        #endif
     }
     
     func notification(_ type: UINotificationFeedbackGenerator.FeedbackType) {
-        #if canImport(UIKit)
         guard isEnabled else { return }
         let generator = UINotificationFeedbackGenerator()
         generator.prepare()
         generator.notificationOccurred(type)
-        #endif
     }
+    #endif
     
     func selection() {
         #if canImport(UIKit)
@@ -53,43 +51,83 @@ class HapticManager: ObservableObject {
     
     // MARK: - 预定义触觉反馈
     func lightTap() {
+        #if canImport(UIKit)
         impact(.light)
+        #else
+        selection()
+        #endif
     }
     
     func mediumTap() {
+        #if canImport(UIKit)
         impact(.medium)
+        #else
+        selection()
+        #endif
     }
     
     func heavyTap() {
+        #if canImport(UIKit)
         impact(.heavy)
+        #else
+        selection()
+        #endif
     }
     
     func success() {
+        #if canImport(UIKit)
         notification(.success)
+        #else
+        selection()
+        #endif
     }
     
     func warning() {
+        #if canImport(UIKit)
         notification(.warning)
+        #else
+        selection()
+        #endif
     }
     
     func error() {
+        #if canImport(UIKit)
         notification(.error)
+        #else
+        selection()
+        #endif
     }
     
     func buttonPress() {
+        #if canImport(UIKit)
         impact(.light)
+        #else
+        selection()
+        #endif
     }
     
     func buttonRelease() {
+        #if canImport(UIKit)
         impact(.rigid)
+        #else
+        selection()
+        #endif
     }
     
     func cardTap() {
+        #if canImport(UIKit)
         impact(.light)
+        #else
+        selection()
+        #endif
     }
     
     func switchToggle() {
+        #if canImport(UIKit)
         impact(.medium)
+        #else
+        selection()
+        #endif
     }
     
     func listItemSelect() {
@@ -97,27 +135,51 @@ class HapticManager: ObservableObject {
     }
     
     func longPressStart() {
+        #if canImport(UIKit)
         impact(.medium)
+        #else
+        selection()
+        #endif
     }
     
     func longPressActivate() {
+        #if canImport(UIKit)
         impact(.heavy)
+        #else
+        selection()
+        #endif
     }
     
     func dragStart() {
+        #if canImport(UIKit)
         impact(.light)
+        #else
+        selection()
+        #endif
     }
     
     func dragEnd() {
+        #if canImport(UIKit)
         impact(.medium)
+        #else
+        selection()
+        #endif
     }
     
     func pullRefreshStart() {
+        #if canImport(UIKit)
         impact(.light)
+        #else
+        selection()
+        #endif
     }
     
     func pullRefreshActivate() {
+        #if canImport(UIKit)
         impact(.medium)
+        #else
+        selection()
+        #endif
     }
     
     func tabSwitch() {
@@ -125,47 +187,91 @@ class HapticManager: ObservableObject {
     }
     
     func pageTransition() {
+        #if canImport(UIKit)
         impact(.light)
+        #else
+        selection()
+        #endif
     }
     
     func modalPresent() {
+        #if canImport(UIKit)
         impact(.medium)
+        #else
+        selection()
+        #endif
     }
     
     func modalDismiss() {
+        #if canImport(UIKit)
         impact(.light)
+        #else
+        selection()
+        #endif
     }
     
     func deleteAction() {
+        #if canImport(UIKit)
         impact(.heavy)
+        #else
+        selection()
+        #endif
     }
     
     func editAction() {
+        #if canImport(UIKit)
         impact(.light)
+        #else
+        selection()
+        #endif
     }
     
     func copyAction() {
+        #if canImport(UIKit)
         impact(.light)
+        #else
+        selection()
+        #endif
     }
     
     func shareAction() {
+        #if canImport(UIKit)
         impact(.medium)
+        #else
+        selection()
+        #endif
     }
     
     func networkConnected() {
+        #if canImport(UIKit)
         notification(.success)
+        #else
+        selection()
+        #endif
     }
     
     func networkDisconnected() {
+        #if canImport(UIKit)
         notification(.warning)
+        #else
+        selection()
+        #endif
     }
     
     func operationComplete() {
+        #if canImport(UIKit)
         notification(.success)
+        #else
+        selection()
+        #endif
     }
     
     func operationFailed() {
+        #if canImport(UIKit)
         notification(.error)
+        #else
+        selection()
+        #endif
     }
 }
 
@@ -218,11 +324,24 @@ struct HapticButtonStyle: ButtonStyle {
     let animation: Animation
     
     init(
-        hapticType: HapticType = .impact(.light),
+        hapticType: HapticType,
         scaleEffect: CGFloat = 0.95,
         animation: Animation = AnimationUtils.buttonPress
     ) {
         self.hapticType = hapticType
+        self.scaleEffect = scaleEffect
+        self.animation = animation
+    }
+    
+    init(
+        scaleEffect: CGFloat = 0.95,
+        animation: Animation = AnimationUtils.buttonPress
+    ) {
+        #if canImport(UIKit)
+        self.hapticType = .impact(.light)
+        #else
+        self.hapticType = .selection
+        #endif
         self.scaleEffect = scaleEffect
         self.animation = animation
     }
@@ -265,11 +384,24 @@ struct HapticToggle: View {
     init(
         _ title: String,
         isOn: Binding<Bool>,
-        hapticType: HapticType = .impact(.medium)
+        hapticType: HapticType
     ) {
         self.title = title
         self._isOn = isOn
         self.hapticType = hapticType
+    }
+    
+    init(
+        _ title: String,
+        isOn: Binding<Bool>
+    ) {
+        self.title = title
+        self._isOn = isOn
+        #if canImport(UIKit)
+        self.hapticType = .impact(.medium)
+        #else
+        self.hapticType = .selection
+        #endif
     }
     
     var body: some View {
@@ -326,7 +458,7 @@ struct HapticSlider: View {
                 .foregroundColor(.secondary)
             
             Slider(value: $value, in: range, step: step)
-                .onChange(of: value) { oldValue, newValue in
+                .onChange(of: value) { _, newValue in
                     let stepDifference = abs(newValue - lastHapticValue)
                     if stepDifference >= step {
                         HapticManager.shared.selection()
@@ -394,25 +526,38 @@ extension View {
     }
     
     func hapticButton(
-        _ type: HapticType = .impact(.light),
+        _ type: HapticType,
         scaleEffect: CGFloat = 0.95,
         animation: Animation = AnimationUtils.buttonPress
     ) -> some View {
         buttonStyle(HapticButtonStyle(hapticType: type, scaleEffect: scaleEffect, animation: animation))
     }
     
+    func hapticButton(
+        scaleEffect: CGFloat = 0.95,
+        animation: Animation = AnimationUtils.buttonPress
+    ) -> some View {
+        #if canImport(UIKit)
+        buttonStyle(HapticButtonStyle(hapticType: .impact(.light), scaleEffect: scaleEffect, animation: animation))
+        #else
+        buttonStyle(HapticButtonStyle(hapticType: .selection, scaleEffect: scaleEffect, animation: animation))
+        #endif
+    }
+    
     func onTapGestureWithHaptic(
-        _ hapticType: HapticType = .impact(.light),
+        _ hapticType: HapticType,
         perform action: @escaping () -> Void
     ) -> some View {
         onTapGesture {
             let hapticManager = HapticManager.shared
             
             switch hapticType {
+            #if canImport(UIKit)
             case .impact(let style):
                 hapticManager.impact(style)
             case .notification(let type):
                 hapticManager.notification(type)
+            #endif
             case .selection:
                 hapticManager.selection()
             case .custom(let hapticAction):
@@ -421,6 +566,16 @@ extension View {
             
             action()
         }
+    }
+    
+    func onTapGestureWithHaptic(
+        perform action: @escaping () -> Void
+    ) -> some View {
+        #if canImport(UIKit)
+        onTapGestureWithHaptic(.impact(.light), perform: action)
+        #else
+        onTapGestureWithHaptic(.selection, perform: action)
+        #endif
     }
 }
 
@@ -439,5 +594,4 @@ extension HapticType {
     static let longPress = HapticType.impact(.heavy)
     static let delete = HapticType.impact(.heavy)
     #endif
-    static let selection = HapticType.selection
 }

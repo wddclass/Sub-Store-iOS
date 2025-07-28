@@ -1,12 +1,16 @@
 import SwiftUI
+#if canImport(UIKit)
+import UIKit
+#endif
 
 // MARK: - 参数项模型
 struct ParamItem: Identifiable, Codable, Equatable {
-    let id = UUID()
+    var id = UUID()
     var key: String = ""
     var value: String = ""
     
     init(key: String = "", value: String = "") {
+        self.id = UUID()
         self.key = key
         self.value = value
     }
@@ -51,7 +55,11 @@ struct ParamsEditorView: View {
                 // 添加按钮
                 addButton
             }
+            #if canImport(UIKit)
             .background(Color(UIColor.secondarySystemGroupedBackground))
+            #else
+            .background(Color.gray.opacity(0.1))
+            #endif
             .cornerRadius(12)
             .onAppear {
                 updateKeyOccurrences()
@@ -85,11 +93,21 @@ struct ParamsEditorView: View {
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 12)
+        #if canImport(UIKit)
         .background(Color(UIColor.tertiarySystemGroupedBackground))
+        #else
+        .background(Color.gray.opacity(0.05))
+        #endif
         .overlay(
             Rectangle()
                 .frame(height: 1)
-                .foregroundColor(Color(UIColor.separator)),
+                .foregroundColor({
+                    #if canImport(UIKit)
+                    return Color(UIColor.separator)
+                    #else
+                    return Color.gray.opacity(0.3)
+                    #endif
+                }()),
             alignment: .bottom
         )
     }
@@ -191,11 +209,21 @@ struct ParamsEditorView: View {
             .frame(maxWidth: .infinity)
             .padding(.vertical, 12)
         }
+        #if canImport(UIKit)
         .background(Color(UIColor.tertiarySystemGroupedBackground))
+        #else
+        .background(Color.gray.opacity(0.05))
+        #endif
         .overlay(
             Rectangle()
                 .frame(height: 1)
-                .foregroundColor(Color(UIColor.separator)),
+                .foregroundColor({
+                    #if canImport(UIKit)
+                    return Color(UIColor.separator)
+                    #else
+                    return Color.gray.opacity(0.3)
+                    #endif
+                }()),
             alignment: .top
         )
     }
@@ -227,7 +255,7 @@ struct ParamsEditorView: View {
     private func deleteParameter(at index: Int) {
         guard index < parameters.count else { return }
         
-        withAnimation(.easeOut(duration: 0.3)) {
+        _ = withAnimation(.easeOut(duration: 0.3)) {
             parameters.remove(at: index)
         }
     }
@@ -312,7 +340,11 @@ struct ParamsEditorWrapperView: View {
             )
         }
         .padding()
+        #if canImport(UIKit)
         .background(Color(UIColor.systemGroupedBackground))
+        #else
+        .background(Color.gray.opacity(0.15))
+        #endif
         .cornerRadius(12)
     }
 }
@@ -388,5 +420,9 @@ struct KeyValueEditorView: View {
         }
         .padding()
     }
+    #if canImport(UIKit)
     .background(Color(UIColor.systemBackground))
+    #else
+    .background(Color.white)
+    #endif
 }

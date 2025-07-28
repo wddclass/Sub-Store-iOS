@@ -1,5 +1,8 @@
 import SwiftUI
 import Combine
+#if canImport(UIKit)
+import UIKit
+#endif
 
 // MARK: - 主题管理器
 @MainActor
@@ -70,15 +73,17 @@ class ThemeManager: ObservableObject {
     
     private func saveThemeSettings() {
         UserDefaults.standard.set(currentTheme.rawValue, forKey: "app_theme")
-        UserDefaults.standard.set(accentColor.toHex(), forKey: "app_accent_color")
+        UserDefaults.standard.set(accentColor.toHex() ?? "#007AFF", forKey: "app_accent_color")
     }
     
     private func setupSystemThemeObserver() {
+        #if canImport(UIKit)
         NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)
             .sink { [weak self] _ in
                 self?.updateDarkModeStatus()
             }
             .store(in: &cancellables)
+        #endif
     }
     
     private func updateDarkModeStatus() {
@@ -88,7 +93,11 @@ class ThemeManager: ObservableObject {
         case .dark:
             isDarkMode = true
         case .system:
+            #if canImport(UIKit)
             isDarkMode = UITraitCollection.current.userInterfaceStyle == .dark
+            #else
+            isDarkMode = false  // Default to light mode on macOS
+            #endif
         }
     }
 }
